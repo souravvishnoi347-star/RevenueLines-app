@@ -568,13 +568,76 @@ export default function Dashboard() {
             </div>
           )}
 
-          {['workflows'].includes(activeTab) && (
-            <div className="flex flex-col items-center justify-center py-20 text-center animate-in fade-in duration-500">
-               <div className="w-16 h-16 bg-gray-100 dark:bg-[#282a2e] rounded-full flex items-center justify-center text-gray-400 dark:text-[#b9cacb] mb-4">
-                  <Activity size={32} />
-               </div>
-               <h3 className="text-xl font-semibold mb-2 capitalize">{activeTab} Module</h3>
-               <p className="text-gray-500 dark:text-[#b9cacb]">This service is connected to your backend but UI is under construction.</p>
+                           {activeTab === 'workflows' && (
+            <div className="space-y-8">
+              <div>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-[#e2e2e8]">Integrations & Automations</h3>
+                <p className="text-sm text-gray-500 dark:text-[#b9cacb]">Connect your AI agent to external CRMs, channels, and custom n8n workflows.</p>
+              </div>
+
+              {/* Connected Channels */}
+              <div className="bg-white dark:bg-[#1e2024] p-6 rounded-2xl border border-gray-100 dark:border-transparent shadow-sm">
+                <h4 className="font-bold mb-4 flex items-center gap-2"><MessageSquare size={18} className="text-blue-500"/> Connected Channels</h4>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {[
+                    { name: 'WhatsApp', status: 'Connected', color: 'bg-green-500' },
+                    { name: 'Instagram', status: 'Coming Soon', color: 'bg-gray-300 dark:bg-gray-600' },
+                    { name: 'Property Finder', status: 'Coming Soon', color: 'bg-gray-300 dark:bg-gray-600' },
+                    { name: 'Bayut', status: 'Coming Soon', color: 'bg-gray-300 dark:bg-gray-600' }
+                  ].map(channel => (
+                    <div key={channel.name} className="p-4 rounded-xl border border-gray-100 dark:border-[#3b494b]/30 flex flex-col items-center justify-center text-center gap-2">
+                      <div className={`w-3 h-3 rounded-full ${channel.color}`}></div>
+                      <p className="font-semibold text-sm">{channel.name}</p>
+                      <p className="text-[10px] text-gray-500 uppercase tracking-widest">{channel.status}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* CRMs */}
+              <div className="bg-white dark:bg-[#1e2024] p-6 rounded-2xl border border-gray-100 dark:border-transparent shadow-sm">
+                <h4 className="font-bold mb-4 flex items-center gap-2"><Users size={18} className="text-orange-500"/> CRM Integrations</h4>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {['HubSpot', 'Salesforce', 'Zoho CRM'].map(crm => (
+                    <div key={crm} className="p-4 rounded-xl border border-gray-100 dark:border-[#3b494b]/30 flex items-center justify-between">
+                      <p className="font-semibold text-sm">{crm}</p>
+                      <button className="px-3 py-1 bg-gray-100 dark:bg-[#0c0e12] text-xs font-bold rounded-lg hover:bg-gray-200 dark:hover:bg-[#2a2c31] transition-colors">Connect</button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* n8n Workflows */}
+              <div className="bg-white dark:bg-[#1e2024] p-6 rounded-2xl border border-blue-100 dark:border-[#00f0ff]/20 shadow-sm relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 dark:bg-[#00f0ff]/5 rounded-bl-full"></div>
+                <div className="flex justify-between items-start relative z-10">
+                  <div>
+                    <h4 className="font-bold mb-1 flex items-center gap-2"><MonitorSmartphone size={18} className="text-blue-600 dark:text-[#00f0ff]"/> Advanced n8n Automations</h4>
+                    <p className="text-xs text-gray-500 max-w-md mb-6">Upload a JSON workflow file provided by your agency to instantly install new automations (e.g., Google Sheets sync, Auto-Emails).</p>
+                  </div>
+                  <button className="px-4 py-2 bg-blue-600 dark:bg-[#00f0ff] text-white dark:text-[#0c0e12] font-bold rounded-xl text-sm flex items-center gap-2 shadow-lg shadow-blue-500/30">
+                    <Plus size={16}/> Upload JSON Workflow
+                  </button>
+                </div>
+
+                <div className="space-y-3 relative z-10">
+                  <div className="p-4 rounded-xl bg-gray-50 dark:bg-[#0c0e12] border border-gray-100 dark:border-[#3b494b]/30 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                      <p className="font-semibold text-sm">Sync Hot Leads to Google Sheets</p>
+                    </div>
+                    <span className="text-xs text-gray-500">Active</span>
+                  </div>
+                  <div className="p-4 rounded-xl bg-gray-50 dark:bg-[#0c0e12] border border-gray-100 dark:border-[#3b494b]/30 flex items-center justify-between opacity-60">
+                    <div className="flex items-center gap-3">
+                      <div className="w-2 h-2 rounded-full bg-gray-400"></div>
+                      <p className="font-semibold text-sm">Send Email Notification on New Lead</p>
+                    </div>
+                    <span className="text-xs text-gray-500">Paused</span>
+                  </div>
+                </div>
+              </div>
+
             </div>
           )}
 
