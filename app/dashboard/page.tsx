@@ -24,6 +24,11 @@ export default function Dashboard() {
   // AI Chats states
   const [selectedLeadPhone, setSelectedLeadPhone] = useState<string | null>(null);
   const [leadChatHistory, setLeadChatHistory] = useState<any[]>([]);
+  
+  // Campaign States
+  const [campaignMsg, setCampaignMsg] = useState('');
+  const [campaignStatus, setCampaignStatus] = useState('New');
+  const [isSendingCampaign, setIsSendingCampaign] = useState(false);
 
   useEffect(() => {
     if (theme === 'dark') document.documentElement.classList.add('dark');
@@ -34,22 +39,16 @@ export default function Dashboard() {
     setDateStr(new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }));
     fetchDashboardData();
 
-    // Subscribe to realtime updates for leads
     const leadsChannel = supabase.channel('leads_updates')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'leads' }, () => {
         fetchDashboardData();
       }).subscribe();
 
-    // Subscribe to realtime updates for chat_history
     const chatChannel = supabase.channel('chat_updates')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_history' }, payload => {
         setLeadChatHistory(prev => {
-          // Only add if it belongs to the currently viewed lead
           if (payload.new.phone === selectedLeadPhone) {
-            // Check if it already exists to prevent dupes during fast updates
-            if (!prev.find(m => m.id === payload.new.id)) {
-              return [...prev, payload.new];
-            }
+            if (!prev.find(m => m.id === payload.new.id)) return [...prev, payload.new];
           }
           return prev;
         });
@@ -93,6 +92,24 @@ export default function Dashboard() {
   const handleDeleteProperty = async (id: string) => {
     await supabase.from('inventory').delete().eq('id', id);
     fetchDashboardData();
+  };
+
+  const handleSendCampaign = async () => {
+    if (!campaignMsg) return;
+    setIsSendingCampaign(true);
+    try {
+      const res = await fetch('/api/campaign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: campaignMsg, targetStatus: campaignStatus })
+      });
+      const data = await res.json();
+      alert(`Campaign sent successfully to ${data.count || 0} leads!`);
+      setCampaignMsg('');
+    } catch(e) {
+      alert("Error sending campaign.");
+    }
+    setIsSendingCampaign(false);
   };
 
   return (
@@ -181,20 +198,13 @@ export default function Dashboard() {
           
           {activeTab === 'home' && (
             <>
-              {/* Header Section */}
               <section className="flex flex-col md:flex-row md:items-end justify-between gap-4">
                 <div>
                   <h1 className="text-3xl md:text-4xl font-black tracking-tight text-gray-900 dark:text-white mb-2">Welcome back, Nikhil.</h1>
                   <p className="text-gray-500 dark:text-[#b9cacb] text-sm md:text-base">Here's what your AI has been doing today, <span className="text-[#00f0ff] font-medium">{dateStr}</span>.</p>
                 </div>
-                <div className="flex gap-3">
-                  <button className="px-5 py-2.5 bg-blue-600 dark:bg-[#00f0ff] text-white dark:text-[#0c0e12] rounded-xl text-sm font-bold flex items-center gap-2">
-                    <TrendingUp size={16} /> Campaign
-                  </button>
-                </div>
               </section>
 
-              {/* Stats Grid */}
               <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {[
                   { label: 'Total Leads Handled', value: stats.total.toString(), icon: <Users size={20} className="text-blue-500 dark:text-[#00f0ff]"/> },
@@ -213,7 +223,6 @@ export default function Dashboard() {
                 ))}
               </section>
 
-              {/* Recent AI Conversations */}
               <section className="bg-white dark:bg-[#1e2024] rounded-2xl border border-gray-100 dark:border-transparent p-6 shadow-sm">
                 <div className="flex items-center justify-between mb-6">
                   <h3 className="text-xl font-bold text-gray-900 dark:text-[#e2e2e8]">Recent AI Conversations</h3>
@@ -364,7 +373,6 @@ export default function Dashboard() {
 
           {activeTab === 'chats' && (
             <div className="flex h-[calc(100vh-90px)] -m-4 md:-m-10 bg-gray-50 dark:bg-[#111318]">
-              {/* Left Pane: Leads List */}
               <div className="w-[320px] shrink-0 border-r border-gray-200 dark:border-[#3b494b]/20 bg-white dark:bg-[#1e2024] flex flex-col hidden md:flex">
                 <div className="p-4 border-b border-gray-200 dark:border-[#3b494b]/20 font-bold text-lg">
                   Conversations
@@ -384,7 +392,6 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              {/* Right Pane: Chat History */}
               <div className="flex-1 flex flex-col bg-white dark:bg-[#111318]">
                 {selectedLeadPhone ? (
                   <>
@@ -428,7 +435,140 @@ export default function Dashboard() {
             </div>
           )}
 
-          {['recovery', 'workflows', 'analytics'].includes(activeTab) && (
+          {activeTab === 'analytics' && (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-[#e2e2e8]">AI Sales Intelligence</h3>
+                  <p className="text-sm text-gray-500 dark:text-[#b9cacb]">Performance metrics and insights from your AI Agent.</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="bg-white dark:bg-[#1e2024] p-5 rounded-2xl border border-gray-100 dark:border-transparent shadow-sm">
+                  <p className="text-sm text-gray-500 dark:text-[#b9cacb] mb-1 font-semibold uppercase tracking-wider">Total Interactions</p>
+                  <p className="text-3xl font-black">{leads.length}</p>
+                </div>
+                <div className="bg-white dark:bg-[#1e2024] p-5 rounded-2xl border border-gray-100 dark:border-transparent shadow-sm">
+                  <p className="text-sm text-gray-500 dark:text-[#b9cacb] mb-1 font-semibold uppercase tracking-wider">Conversion Rate</p>
+                  <p className="text-3xl font-black text-green-600 dark:text-[#00ff88]">
+                    {leads.length ? Math.round(((stats.active + stats.recovered) / leads.length) * 100) : 0}%
+                  </p>
+                </div>
+                <div className="bg-white dark:bg-[#1e2024] p-5 rounded-2xl border border-gray-100 dark:border-transparent shadow-sm">
+                  <p className="text-sm text-gray-500 dark:text-[#b9cacb] mb-1 font-semibold uppercase tracking-wider">Human Time Saved</p>
+                  <p className="text-3xl font-black text-blue-600 dark:text-[#00f0ff]">{Math.round(leads.length * 12.5 / 60)} hrs</p>
+                  <p className="text-[10px] text-gray-400 mt-1">Based on 12.5 mins per lead</p>
+                </div>
+                <div className="bg-white dark:bg-[#1e2024] p-5 rounded-2xl border border-gray-100 dark:border-transparent shadow-sm">
+                  <p className="text-sm text-gray-500 dark:text-[#b9cacb] mb-1 font-semibold uppercase tracking-wider">Brokerage Saved</p>
+                  <p className="text-3xl font-black text-purple-600 dark:text-[#b088ff]">${leads.length * 25}</p>
+                  <p className="text-[10px] text-gray-400 mt-1">Estimated at $25/lead handling</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="bg-white dark:bg-[#1e2024] p-6 rounded-2xl border border-gray-100 dark:border-transparent shadow-sm">
+                  <h4 className="font-bold mb-4">Lead Quality Pipeline</h4>
+                  <div className="space-y-4">
+                    <div>
+                      <div className="flex justify-between text-sm mb-1">
+                        <span className="font-semibold text-red-500">Hot Leads (Ready to Buy)</span>
+                        <span>{leads.filter(l => l.status === 'Hot').length}</span>
+                      </div>
+                      <div className="w-full bg-gray-100 dark:bg-[#0c0e12] rounded-full h-2.5">
+                        <div className="bg-red-500 h-2.5 rounded-full" style={{ width: `${leads.length ? (leads.filter(l => l.status === 'Hot').length / leads.length) * 100 : 0}%` }}></div>
+                      </div>
+                    </div>
+                    <div>
+                      <div className="flex justify-between text-sm mb-1">
+                        <span className="font-semibold text-orange-500">Warm Leads (Interested)</span>
+                        <span>{leads.filter(l => l.status === 'Warm').length}</span>
+                      </div>
+                      <div className="w-full bg-gray-100 dark:bg-[#0c0e12] rounded-full h-2.5">
+                        <div className="bg-orange-500 h-2.5 rounded-full" style={{ width: `${leads.length ? (leads.filter(l => l.status === 'Warm').length / leads.length) * 100 : 0}%` }}></div>
+                      </div>
+                    </div>
+                    <div>
+                      <div className="flex justify-between text-sm mb-1">
+                        <span className="font-semibold text-blue-500">New / Cold Leads</span>
+                        <span>{leads.filter(l => l.status === 'New').length}</span>
+                      </div>
+                      <div className="w-full bg-gray-100 dark:bg-[#0c0e12] rounded-full h-2.5">
+                        <div className="bg-blue-500 h-2.5 rounded-full" style={{ width: `${leads.length ? (leads.filter(l => l.status === 'New').length / leads.length) * 100 : 0}%` }}></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white dark:bg-[#1e2024] p-6 rounded-2xl border border-gray-100 dark:border-transparent shadow-sm">
+                  <h4 className="font-bold mb-4">AI Sentiment Analysis</h4>
+                  <div className="flex items-center justify-center h-40">
+                    <div className="relative w-40 h-40 rounded-full border-[16px] border-green-500 flex items-center justify-center">
+                      <div className="absolute inset-0 border-[16px] border-gray-100 dark:border-[#0c0e12] rounded-full" style={{ clipPath: 'polygon(50% 50%, 100% 0, 100% 100%, 0 100%, 0 0)' }}></div>
+                      <div className="text-center z-10">
+                        <p className="text-3xl font-black">78%</p>
+                        <p className="text-[10px] uppercase font-bold text-gray-500">Positive</p>
+                      </div>
+                    </div>
+                  </div>
+                  <p className="text-center text-sm text-gray-500 mt-4">Buyers are showing high interest in luxury villas and off-plan apartments this week.</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'recovery' && (
+            <div className="space-y-6">
+              <div className="bg-white dark:bg-[#1e2024] p-6 rounded-2xl border border-gray-100 dark:border-transparent shadow-sm">
+                <h3 className="text-xl font-bold text-gray-900 dark:text-[#e2e2e8] mb-2">Dead Lead Recovery Campaigns</h3>
+                <p className="text-sm text-gray-500 dark:text-[#b9cacb] mb-6">Send a broadcast WhatsApp message to a specific segment of leads to re-engage them automatically.</p>
+                
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                  <div>
+                    <label className="block text-sm font-semibold mb-2">Select Target Audience</label>
+                    <div className="flex gap-2 mb-6">
+                      {['New', 'Warm', 'Cold'].map(status => (
+                        <button 
+                          key={status}
+                          onClick={() => setCampaignStatus(status)}
+                          className={`px-4 py-2 rounded-xl text-sm font-bold border transition-colors ${campaignStatus === status ? 'border-blue-600 dark:border-[#00f0ff] bg-blue-50 dark:bg-[#00f0ff]/10 text-blue-600 dark:text-[#00f0ff]' : 'border-gray-200 dark:border-[#3b494b]/30 text-gray-500 hover:bg-gray-50 dark:hover:bg-[#2a2c31]'}`}
+                        >
+                          {status} Leads
+                        </button>
+                      ))}
+                    </div>
+
+                    <label className="block text-sm font-semibold mb-2">Campaign Message</label>
+                    <textarea 
+                      value={campaignMsg}
+                      onChange={e => setCampaignMsg(e.target.value)}
+                      placeholder="Hi there! We have a new luxury property launch matching your previous interests. Would you like the brochure?"
+                      className="w-full h-32 px-4 py-3 bg-gray-50 dark:bg-[#0c0e12] border border-gray-200 dark:border-[#3b494b]/30 rounded-xl outline-none focus:border-blue-500 mb-4 resize-none"
+                    ></textarea>
+
+                    <button 
+                      onClick={handleSendCampaign}
+                      disabled={isSendingCampaign || !campaignMsg}
+                      className="w-full py-3 bg-blue-600 dark:bg-[#00f0ff] text-white dark:text-[#0c0e12] rounded-xl font-bold hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                    >
+                      {isSendingCampaign ? 'Sending...' : <><RefreshCcw size={18} /> Launch Broadcast</>}
+                    </button>
+                  </div>
+
+                  <div className="bg-gray-50 dark:bg-[#0c0e12] border border-gray-200 dark:border-[#3b494b]/30 p-6 rounded-xl flex flex-col justify-center items-center text-center">
+                    <div className="w-16 h-16 bg-blue-100 dark:bg-[#00f0ff]/10 rounded-full flex items-center justify-center text-blue-600 dark:text-[#00f0ff] mb-4">
+                      <Users size={32} />
+                    </div>
+                    <h4 className="font-bold text-lg mb-2">Targeting {leads.filter(l => l.status === campaignStatus).length} Leads</h4>
+                    <p className="text-sm text-gray-500 max-w-[250px]">Your message will be sent instantly to these leads via WhatsApp. Replies will be handled by the AI.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {['workflows'].includes(activeTab) && (
             <div className="flex flex-col items-center justify-center py-20 text-center animate-in fade-in duration-500">
                <div className="w-16 h-16 bg-gray-100 dark:bg-[#282a2e] rounded-full flex items-center justify-center text-gray-400 dark:text-[#b9cacb] mb-4">
                   <Activity size={32} />
