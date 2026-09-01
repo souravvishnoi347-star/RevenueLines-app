@@ -111,8 +111,46 @@ export default function Dashboard() {
     }
     setIsSendingCampaign(false);
   };
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [password, setPassword] = useState('');
 
-  return (
+  const handleLogin = (e: any) => {
+    e.preventDefault();
+    if (password === 'admin123') {
+      setIsAuthenticated(true);
+    } else {
+      alert('Incorrect Password!');
+    }
+  };
+
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-[#111318] flex flex-col items-center justify-center p-4">
+        <div className="w-full max-w-md bg-white dark:bg-[#1e2024] p-8 rounded-2xl shadow-lg border border-gray-100 dark:border-[#3b494b]/30 text-center">
+          <div className="w-16 h-16 bg-blue-100 dark:bg-[#00f0ff]/10 rounded-full flex items-center justify-center text-blue-600 dark:text-[#00f0ff] mx-auto mb-6">
+            <Activity size={32} />
+          </div>
+          <h1 className="text-2xl font-black text-gray-900 dark:text-white mb-2">RevenueLine Portal</h1>
+          <p className="text-gray-500 mb-8">Enter admin password to access the dashboard.</p>
+          
+          <form onSubmit={handleLogin} className="space-y-4">
+            <input 
+              type="password" 
+              placeholder="Enter Password" 
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              className="w-full px-4 py-3 bg-gray-50 dark:bg-[#0c0e12] border border-gray-200 dark:border-[#3b494b]/30 rounded-xl outline-none focus:border-blue-500 text-center tracking-widest text-lg"
+            />
+            <button type="submit" className="w-full py-3 bg-blue-600 dark:bg-[#00f0ff] text-white dark:text-[#0c0e12] font-bold rounded-xl hover:bg-blue-700 transition-colors">
+              Access Dashboard
+            </button>
+          </form>
+          <p className="text-xs text-gray-400 mt-6">For demo purposes, password is: admin123</p>
+        </div>
+      </div>
+    );
+  }
+  return ( 
     <div className="min-h-screen bg-gray-50 dark:bg-[#111318] text-gray-900 dark:text-[#e2e2e8] font-sans antialiased overflow-x-hidden flex selection:bg-[#00f0ff]/30 selection:text-[#00f0ff] transition-colors duration-300">
       
       {/* Sidebar */}
@@ -140,6 +178,9 @@ export default function Dashboard() {
             { id: 'recovery', icon: <RefreshCcw size={20}/>, label: 'Dead Lead Recovery' },
             { id: 'workflows', icon: <MonitorSmartphone size={20}/>, label: 'Automations' },
             { id: 'analytics', icon: <BarChart3 size={20}/>, label: 'AI Intelligence' },
+            { id: 'settings', icon: <User size={20}/>, label: 'Settings' },
+      
+      
           ].map(tab => (
             <li key={tab.id}>
               <button 
@@ -640,7 +681,81 @@ export default function Dashboard() {
 
             </div>
           )}
+          {activeTab === 'settings' && (
+            <div className="space-y-8">
+              <div>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-[#e2e2e8]">Portal & Bot Settings</h3>
+                <p className="text-sm text-gray-500 dark:text-[#b9cacb]">Manage your AI Assistant profile and dashboard preferences.</p>
+              </div>
 
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* AI Profile Settings */}
+                <div className="bg-white dark:bg-[#1e2024] p-6 rounded-2xl border border-gray-100 dark:border-transparent shadow-sm">
+                  <h4 className="font-bold mb-6 flex items-center gap-2"><Bot size={18} className="text-blue-500"/> AI Agent Profile (WhatsApp)</h4>
+                  
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-4 mb-6">
+                      <div className="w-16 h-16 rounded-full bg-blue-100 dark:bg-[#0c0e12] flex items-center justify-center text-blue-600 dark:text-[#00f0ff] border-2 border-dashed border-blue-300 cursor-pointer hover:bg-blue-200 transition-colors">
+                        <Plus size={24} />
+                      </div>
+                      <div>
+                        <p className="font-semibold text-sm">Profile Picture</p>
+                        <p className="text-xs text-gray-500">Upload a professional avatar</p>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-semibold mb-2">Agent Name</label>
+                      <input type="text" defaultValue="Aura" className="w-full px-4 py-2 bg-gray-50 dark:bg-[#0c0e12] border border-gray-200 dark:border-[#3b494b]/30 rounded-xl outline-none focus:border-blue-500" />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-semibold mb-2">WhatsApp Business Bio</label>
+                      <textarea defaultValue="Hi, I am Aura, your 24/7 AI Real Estate Assistant. Ask me anything about Dubai properties!" className="w-full h-24 px-4 py-2 bg-gray-50 dark:bg-[#0c0e12] border border-gray-200 dark:border-[#3b494b]/30 rounded-xl outline-none focus:border-blue-500 resize-none"></textarea>
+                    </div>
+
+                    <button className="px-4 py-2 bg-blue-600 dark:bg-[#00f0ff] text-white dark:text-[#0c0e12] font-bold rounded-xl text-sm hover:bg-blue-700 transition-colors">
+                      Sync to Meta WhatsApp
+                    </button>
+                    <p className="text-[10px] text-gray-400 mt-2">*Note: Syncing requires Meta Business API approval.</p>
+                  </div>
+                </div>
+
+                {/* Dashboard Preferences */}
+                <div className="bg-white dark:bg-[#1e2024] p-6 rounded-2xl border border-gray-100 dark:border-transparent shadow-sm h-fit">
+                  <h4 className="font-bold mb-6 flex items-center gap-2"><User size={18} className="text-orange-500"/> Admin Preferences</h4>
+                  
+                  <div className="space-y-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-semibold text-sm">Dark Mode</p>
+                        <p className="text-xs text-gray-500">Toggle dashboard theme</p>
+                      </div>
+                      <button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} className="w-12 h-6 bg-blue-600 rounded-full relative">
+                        <div className={`w-4 h-4 bg-white rounded-full absolute top-1 transition-all ${theme === 'dark' ? 'right-1' : 'left-1'}`}></div>
+                      </button>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-semibold text-sm">Email Notifications</p>
+                        <p className="text-xs text-gray-500">Get alerts for 'Hot' leads</p>
+                      </div>
+                      <button className="w-12 h-6 bg-green-500 rounded-full relative">
+                        <div className="w-4 h-4 bg-white rounded-full absolute top-1 right-1"></div>
+                      </button>
+                    </div>
+
+                    <div className="pt-6 border-t border-gray-100 dark:border-[#3b494b]/30">
+                      <button onClick={() => setIsAuthenticated(false)} className="w-full px-4 py-2 bg-red-100 dark:bg-red-500/10 text-red-600 dark:text-red-400 font-bold rounded-xl text-sm hover:bg-red-200 transition-colors">
+                        Logout
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </main>
       </div>
     </div>
