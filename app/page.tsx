@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { 
   BarChart3, Users, MessageSquare, RefreshCcw, 
-  MonitorSmartphone, Building, Sun, Moon, Bell, User, Search, Home, Activity, CheckCircle, TrendingUp, Plus, Trash2, MapPin, DollarSign, Bot, ArrowRight
+  MonitorSmartphone, Building, Sun, Moon, Bell, User, Search, Home, Activity, CheckCircle, TrendingUp, Plus, Trash2, MapPin, DollarSign, Bot, ArrowRight, Settings, Zap, Shield, Clock
 } from 'lucide-react';
 
 export default function Dashboard() {
@@ -12,37 +12,35 @@ export default function Dashboard() {
   const [dateStr, setDateStr] = useState('');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
-  // Real Data states
   const [leads, setLeads] = useState<any[]>([]);
   const [stats, setStats] = useState({ total: 0, active: 0, recovered: 0 });
   const [inventory, setInventory] = useState<any[]>([]);
   
-  // Inventory Form states
   const [isAddingProp, setIsAddingProp] = useState(false);
   const [newProp, setNewProp] = useState({title: '', location: '', price: '', description: ''});
 
-  // AI Chats states
   const [selectedLeadPhone, setSelectedLeadPhone] = useState<string | null>(null);
   const [leadChatHistory, setLeadChatHistory] = useState<any[]>([]);
   
-  // Campaign States
   const [campaignMsg, setCampaignMsg] = useState('');
   const [campaignStatus, setCampaignStatus] = useState('New');
   const [isSendingCampaign, setIsSendingCampaign] = useState(false);
 
-  // Load saved theme on mount
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [password, setPassword] = useState('');
+
   useEffect(() => {
-    const savedTheme = localStorage.getItem('theme') as 'light' | 'dark';
+    const savedTheme = localStorage.getItem('rl-theme') as 'light' | 'dark';
     if (savedTheme) setTheme(savedTheme);
   }, []);
 
   useEffect(() => {
     if (theme === 'dark') {
       document.documentElement.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
+      localStorage.setItem('rl-theme', 'dark');
     } else {
       document.documentElement.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
+      localStorage.setItem('rl-theme', 'light');
     }
   }, [theme]);
 
@@ -81,7 +79,6 @@ export default function Dashboard() {
         recovered: leadsData.filter((l:any) => l.status === 'Recovered').length
       });
     }
-
     const { data: invData } = await supabase.from('inventory').select('*').order('created_at', { ascending: false });
     if (invData) setInventory(invData);
   };
@@ -122,8 +119,6 @@ export default function Dashboard() {
     }
     setIsSendingCampaign(false);
   };
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [password, setPassword] = useState('');
 
   const handleLogin = (e: any) => {
     e.preventDefault();
@@ -134,311 +129,333 @@ export default function Dashboard() {
     }
   };
 
+  const statusBadge = (status: string) => {
+    const styles: any = {
+      Hot: 'bg-red-50 text-red-600 border-red-200 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20',
+      Warm: 'bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20',
+      New: 'bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-500/10 dark:text-[#00f0ff] dark:border-blue-500/20',
+    };
+    return `px-3 py-1 rounded-full text-[11px] font-semibold border ${styles[status] || styles.New}`;
+  };
+
+  // ─── LOGIN SCREEN ───
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-[#111318] flex flex-col items-center justify-center p-4">
-        <div className="w-full max-w-md bg-white dark:bg-[#1e2024] p-8 rounded-2xl shadow-lg border border-gray-100 dark:border-[#3b494b]/30 text-center">
-          <div className="w-16 h-16 bg-blue-100 dark:bg-[#00f0ff]/10 rounded-full flex items-center justify-center text-blue-600 dark:text-[#00f0ff] mx-auto mb-6">
-            <Activity size={32} />
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-cyan-50 dark:from-[#0c0e12] dark:via-[#111318] dark:to-[#0c0e12] flex flex-col items-center justify-center p-4">
+        <div className="w-full max-w-sm">
+          <div className="text-center mb-8 animate-fade-in">
+            <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-cyan-500 dark:from-[#00f0ff] dark:to-[#00ff88] rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-500/20">
+              <Activity size={28} className="text-white dark:text-[#0c0e12]" strokeWidth={2.5} />
+            </div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">RevenueLine</h1>
+            <p className="text-sm text-gray-500 dark:text-[#b9cacb] mt-1">AI Real Estate Intelligence Platform</p>
           </div>
-          <h1 className="text-2xl font-black text-gray-900 dark:text-white mb-2">RevenueLine Portal</h1>
-          <p className="text-gray-500 mb-8">Enter admin password to access the dashboard.</p>
-          
-          <form onSubmit={handleLogin} className="space-y-4">
-            <input 
-              type="password" 
-              placeholder="Enter Password" 
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              className="w-full px-4 py-3 bg-gray-50 dark:bg-[#0c0e12] border border-gray-200 dark:border-[#3b494b]/30 rounded-xl outline-none focus:border-blue-500 text-center tracking-widest text-lg"
-            />
-            <button type="submit" className="w-full py-3 bg-blue-600 dark:bg-[#00f0ff] text-white dark:text-[#0c0e12] font-bold rounded-xl hover:bg-blue-700 transition-colors">
-              Access Dashboard
-            </button>
-          </form>
-          <p className="text-xs text-gray-400 mt-6">For demo purposes, password is: admin123</p>
+
+          <div className="bg-white dark:bg-[#1a1c22] p-8 rounded-3xl shadow-xl shadow-black/5 dark:shadow-black/30 border border-gray-100 dark:border-[#2a2c31] animate-fade-in">
+            <form onSubmit={handleLogin} className="space-y-5">
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 dark:text-[#b9cacb] uppercase tracking-wider mb-2">Admin Password</label>
+                <input 
+                  type="password" 
+                  placeholder="••••••••" 
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  className="w-full px-4 py-3.5 bg-gray-50 dark:bg-[#0c0e12] border border-gray-200 dark:border-[#3b494b]/30 rounded-2xl outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-500/10 dark:focus:ring-[#00f0ff]/10 text-center tracking-[0.3em] text-lg transition-all"
+                />
+              </div>
+              <button type="submit" className="w-full py-3.5 bg-gradient-to-r from-blue-600 to-cyan-600 dark:from-[#00f0ff] dark:to-[#00c8ff] text-white dark:text-[#0c0e12] font-bold rounded-2xl hover:shadow-lg hover:shadow-blue-500/25 active:scale-[0.98] transition-all">
+                Access Dashboard
+              </button>
+            </form>
+          </div>
+          <p className="text-[11px] text-gray-400 text-center mt-6">Demo password: admin123</p>
         </div>
       </div>
     );
   }
+
+  // ─── MAIN DASHBOARD ───
   return ( 
-    <div className="min-h-screen bg-gray-50 dark:bg-[#111318] text-gray-900 dark:text-[#e2e2e8] font-sans antialiased overflow-x-hidden flex selection:bg-[#00f0ff]/30 selection:text-[#00f0ff] transition-colors duration-300">
+    <div className="min-h-screen bg-[#f8f9fc] dark:bg-[#111318] text-gray-900 dark:text-[#e2e2e8] font-sans antialiased overflow-x-hidden flex selection:bg-blue-500/20 selection:text-blue-700 dark:selection:bg-[#00f0ff]/20 dark:selection:text-[#00f0ff] transition-colors duration-300">
       
-      {/* Sidebar */}
-      <div className={`fixed inset-0 bg-black/50 z-40 md:hidden transition-opacity ${isMobileMenuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`} onClick={() => setIsMobileMenuOpen(false)}></div>
-      <nav className={`fixed md:flex w-[280px] h-screen left-0 top-0 border-r border-gray-200 dark:border-[#3b494b]/20 bg-white dark:bg-[#0c0e12] flex-col py-8 z-50 transition-transform duration-300 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
-        <div className="px-6 mb-8 flex items-center gap-4 justify-between">
-          <div className="flex items-center gap-4">
-            <div className="w-10 h-10 rounded-xl overflow-hidden bg-blue-100 dark:bg-[#00f0ff]/10 flex items-center justify-center text-blue-600 dark:text-[#00f0ff]">
-              <Activity size={24} strokeWidth={2.5} />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-[#00f0ff] tracking-tight">RevenueLine</h1>
-              <p className="text-sm text-gray-500 dark:text-[#b9cacb]">Dubai Real Estate</p>
-            </div>
+      {/* Mobile Overlay */}
+      <div className={`fixed inset-0 bg-black/40 backdrop-blur-sm z-40 md:hidden transition-opacity ${isMobileMenuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`} onClick={() => setIsMobileMenuOpen(false)}></div>
+      
+      {/* ─── SIDEBAR ─── */}
+      <nav className={`fixed md:flex w-[260px] h-screen left-0 top-0 border-r border-gray-200/80 dark:border-[#1e2024] bg-white dark:bg-[#0c0e12] flex-col z-50 transition-transform duration-300 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
+        
+        {/* Logo */}
+        <div className="px-6 h-[72px] flex items-center gap-3 border-b border-gray-100 dark:border-[#1e2024]">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 dark:from-[#00f0ff] dark:to-[#00ff88] flex items-center justify-center shadow-md shadow-blue-500/20">
+            <Activity size={18} className="text-white dark:text-[#0c0e12]" strokeWidth={2.5} />
           </div>
-          <button className="md:hidden text-gray-500" onClick={() => setIsMobileMenuOpen(false)}>âœ•</button>
+          <div className="flex-1">
+            <h1 className="text-base font-bold text-gray-900 dark:text-white tracking-tight leading-tight">RevenueLine</h1>
+            <p className="text-[10px] text-gray-400 dark:text-[#6b7280] font-medium uppercase tracking-wider">AI Platform</p>
+          </div>
+          <button className="md:hidden text-gray-400 hover:text-gray-600" onClick={() => setIsMobileMenuOpen(false)}>✕</button>
         </div>
         
-        <ul className="flex flex-col gap-2 flex-grow overflow-y-auto">
-          {[
-            { id: 'home', icon: <Home size={20}/>, label: 'Home' },
-            { id: 'leads', icon: <Users size={20}/>, label: 'Live Leads' },
-            { id: 'chats', icon: <MessageSquare size={20}/>, label: 'AI Chats' },
-            { id: 'inventory', icon: <Building size={20}/>, label: 'Inventory' },
-            { id: 'recovery', icon: <RefreshCcw size={20}/>, label: 'Dead Lead Recovery' },
-            { id: 'workflows', icon: <MonitorSmartphone size={20}/>, label: 'Automations' },
-            { id: 'analytics', icon: <BarChart3 size={20}/>, label: 'AI Intelligence' },
-            { id: 'settings', icon: <User size={20}/>, label: 'Settings' },
-      
-      
-          ].map(tab => (
-            <li key={tab.id}>
-              <button 
-                onClick={() => { setActiveTab(tab.id); setIsMobileMenuOpen(false); }}
-                className={`w-full flex items-center gap-4 px-6 py-3 border-l-4 transition-all duration-300 uppercase tracking-widest text-xs font-bold
-                  ${activeTab === tab.id 
-                    ? 'border-[#00f0ff] bg-gray-100 dark:bg-[#00f0ff]/5 text-blue-600 dark:text-[#00f0ff]' 
-                    : 'border-transparent text-gray-500 dark:text-[#b9cacb] hover:bg-gray-100 dark:hover:bg-[#333539]/20 hover:text-blue-600 dark:hover:text-[#dbfcff]'
-                  }`}
-              >
-                {tab.icon}
-                {tab.label}
-              </button>
-            </li>
-          ))}
-        </ul>
-      </nav>
+        {/* Nav Items */}
+        <div className="flex-1 overflow-y-auto py-4 px-3">
+          <p className="text-[10px] text-gray-400 dark:text-[#6b7280] font-semibold uppercase tracking-wider px-3 mb-2">Main</p>
+          <ul className="flex flex-col gap-0.5 mb-4">
+            {[
+              { id: 'home', icon: <Home size={18}/>, label: 'Dashboard' },
+              { id: 'leads', icon: <Users size={18}/>, label: 'Live Leads' },
+              { id: 'chats', icon: <MessageSquare size={18}/>, label: 'AI Chats' },
+              { id: 'inventory', icon: <Building size={18}/>, label: 'Inventory' },
+            ].map(tab => (
+              <li key={tab.id}>
+                <button 
+                  onClick={() => { setActiveTab(tab.id); setIsMobileMenuOpen(false); }}
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-200
+                    ${activeTab === tab.id 
+                      ? 'bg-blue-50 dark:bg-[#00f0ff]/8 text-blue-600 dark:text-[#00f0ff] shadow-sm' 
+                      : 'text-gray-500 dark:text-[#8b8f96] hover:bg-gray-50 dark:hover:bg-[#1a1c22] hover:text-gray-700 dark:hover:text-[#d0d0d6]'
+                    }`}
+                >
+                  {tab.icon}
+                  {tab.label}
+                </button>
+              </li>
+            ))}
+          </ul>
 
-      {/* Main Content Area */}
-      <div className="flex-1 md:ml-[280px] flex flex-col h-screen overflow-hidden transition-all duration-300">
-        
-        {/* Header */}
-        <header className="h-[90px] border-b border-gray-200 dark:border-[#3b494b]/20 bg-white/80 dark:bg-[#0c0e12]/80 backdrop-blur-xl flex items-center justify-between px-4 md:px-10 shrink-0 sticky top-0 z-30 transition-colors">
-          <div className="flex items-center gap-4">
-            <button className="md:hidden text-gray-500 p-2" onClick={() => setIsMobileMenuOpen(true)}>
-               <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+          <p className="text-[10px] text-gray-400 dark:text-[#6b7280] font-semibold uppercase tracking-wider px-3 mb-2">Tools</p>
+          <ul className="flex flex-col gap-0.5 mb-4">
+            {[
+              { id: 'recovery', icon: <RefreshCcw size={18}/>, label: 'Campaigns' },
+              { id: 'workflows', icon: <Zap size={18}/>, label: 'Automations' },
+              { id: 'analytics', icon: <BarChart3 size={18}/>, label: 'Analytics' },
+            ].map(tab => (
+              <li key={tab.id}>
+                <button 
+                  onClick={() => { setActiveTab(tab.id); setIsMobileMenuOpen(false); }}
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-200
+                    ${activeTab === tab.id 
+                      ? 'bg-blue-50 dark:bg-[#00f0ff]/8 text-blue-600 dark:text-[#00f0ff] shadow-sm' 
+                      : 'text-gray-500 dark:text-[#8b8f96] hover:bg-gray-50 dark:hover:bg-[#1a1c22] hover:text-gray-700 dark:hover:text-[#d0d0d6]'
+                    }`}
+                >
+                  {tab.icon}
+                  {tab.label}
+                </button>
+              </li>
+            ))}
+          </ul>
+
+          <div className="border-t border-gray-100 dark:border-[#1e2024] pt-2">
+            <button 
+              onClick={() => { setActiveTab('settings'); setIsMobileMenuOpen(false); }}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-200
+                ${activeTab === 'settings' 
+                  ? 'bg-blue-50 dark:bg-[#00f0ff]/8 text-blue-600 dark:text-[#00f0ff] shadow-sm' 
+                  : 'text-gray-500 dark:text-[#8b8f96] hover:bg-gray-50 dark:hover:bg-[#1a1c22] hover:text-gray-700 dark:hover:text-[#d0d0d6]'
+                }`}
+            >
+              <Settings size={18}/>
+              Settings
             </button>
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-[#e2e2e8] tracking-tight">RevenueLine Automation</h2>
-              <p className="text-[#f56c36] text-xs font-bold tracking-widest uppercase mt-1">Dashboard</p>
+          </div>
+        </div>
+
+        {/* Bottom user card */}
+        <div className="px-4 py-4 border-t border-gray-100 dark:border-[#1e2024]">
+          <div className="flex items-center gap-3 px-2">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-400 to-cyan-400 flex items-center justify-center text-white text-xs font-bold">N</div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 truncate">Admin</p>
+              <p className="text-[10px] text-gray-400">Pro Plan</p>
             </div>
           </div>
-          <div className="flex items-center gap-2 md:gap-6">
-            <div className="relative hidden sm:block">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-[#b9cacb]/50" size={16} />
-              <input type="text" placeholder="Search leads..." className="pl-10 pr-4 py-2.5 bg-gray-100 dark:bg-[#1e2024] border-none rounded-xl text-sm w-[200px] md:w-[300px] focus:outline-none focus:ring-2 focus:ring-[#00f0ff]/30 text-gray-900 dark:text-[#e2e2e8] placeholder-gray-400 dark:placeholder-[#b9cacb]/50 transition-all" />
+        </div>
+      </nav>
+
+      {/* ─── MAIN CONTENT ─── */}
+      <div className="flex-1 md:ml-[260px] flex flex-col h-screen overflow-hidden transition-all duration-300">
+        
+        {/* Header */}
+        <header className="h-[64px] border-b border-gray-200/80 dark:border-[#1e2024] bg-white/90 dark:bg-[#0c0e12]/90 backdrop-blur-xl flex items-center justify-between px-4 md:px-8 shrink-0 sticky top-0 z-30">
+          <div className="flex items-center gap-3">
+            <button className="md:hidden text-gray-400 p-2 hover:bg-gray-100 dark:hover:bg-[#1a1c22] rounded-xl transition-colors" onClick={() => setIsMobileMenuOpen(true)}>
+               <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+            </button>
+            <div>
+              <h2 className="text-lg font-bold text-gray-900 dark:text-white tracking-tight capitalize">{activeTab === 'home' ? 'Dashboard' : activeTab === 'chats' ? 'AI Conversations' : activeTab}</h2>
             </div>
-            
-            <div className="flex items-center gap-1 md:gap-3">
-              <button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} className="w-10 h-10 flex items-center justify-center rounded-xl text-gray-500 dark:text-[#b9cacb] hover:bg-gray-100 dark:hover:bg-[#333539]/40 transition-colors">
-                {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
-              </button>
-              <button className="w-10 h-10 flex items-center justify-center rounded-xl text-gray-500 dark:text-[#b9cacb] hover:bg-gray-100 dark:hover:bg-[#333539]/40 transition-colors relative">
-                <Bell size={20} />
-                <span className="absolute top-2 right-2.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white dark:border-[#0c0e12]"></span>
-              </button>
-              <div className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-[#333539]/40 flex items-center justify-center border border-gray-200 dark:border-[#3b494b]/30 ml-2">
-                <User size={20} className="text-gray-600 dark:text-[#b9cacb]" />
-              </div>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <div className="relative hidden sm:block mr-2">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300 dark:text-[#4b5563]" size={15} />
+              <input type="text" placeholder="Search..." className="pl-9 pr-4 py-2 bg-gray-50 dark:bg-[#1a1c22] border border-gray-200 dark:border-[#2a2c31] rounded-xl text-sm w-[180px] md:w-[240px] focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-[#00f0ff]/10 focus:border-blue-300 dark:focus:border-[#00f0ff]/30 text-gray-700 dark:text-[#e2e2e8] placeholder-gray-400 dark:placeholder-[#4b5563] transition-all" />
             </div>
+            <button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} className="w-9 h-9 flex items-center justify-center rounded-xl text-gray-400 dark:text-[#6b7280] hover:bg-gray-100 dark:hover:bg-[#1a1c22] transition-colors">
+              {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+            </button>
+            <button className="w-9 h-9 flex items-center justify-center rounded-xl text-gray-400 dark:text-[#6b7280] hover:bg-gray-100 dark:hover:bg-[#1a1c22] transition-colors relative">
+              <Bell size={18} />
+              <span className="absolute top-2 right-2 w-1.5 h-1.5 bg-red-500 rounded-full"></span>
+            </button>
           </div>
         </header>
 
-        {/* Scrollable Main Area */}
-        <main className={`flex-1 overflow-y-auto p-4 md:p-10 scroll-smooth ${activeTab === 'chats' ? 'p-0 md:p-0' : 'space-y-8'}`}>
+        {/* ─── SCROLLABLE MAIN ─── */}
+        <main className={`flex-1 overflow-y-auto scroll-smooth ${activeTab === 'chats' ? 'p-0' : 'p-4 md:p-8 space-y-6'}`}>
           
+          {/* ─── HOME ─── */}
           {activeTab === 'home' && (
-            <>
-              <section className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-                <div>
-                  <h1 className="text-3xl md:text-4xl font-black tracking-tight text-gray-900 dark:text-white mb-2">Welcome back, Nikhil.</h1>
-                  <p className="text-gray-500 dark:text-[#b9cacb] text-sm md:text-base">Here's what your AI has been doing today, <span className="text-[#00f0ff] font-medium">{dateStr}</span>.</p>
-                </div>
+            <div className="animate-fade-in space-y-6">
+              <section>
+                <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-gray-900 dark:text-white">Welcome back 👋</h1>
+                <p className="text-gray-500 dark:text-[#6b7280] text-sm mt-1">Here&apos;s what your AI has been doing, <span className="text-blue-600 dark:text-[#00f0ff] font-medium">{dateStr}</span></p>
               </section>
 
-              <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {[
-                  { label: 'Total Leads Handled', value: stats.total.toString(), icon: <Users size={20} className="text-blue-500 dark:text-[#00f0ff]"/> },
-                  { label: 'Active Conversations', value: stats.active.toString(), icon: <MessageSquare size={20} className="text-orange-500 dark:text-[#fdd55a]"/> },
-                  { label: 'Dead Leads Recovered', value: stats.recovered.toString(), icon: <RefreshCcw size={20} className="text-green-500 dark:text-[#00ff88]"/> }
+                  { label: 'Total Leads', value: stats.total, icon: <Users size={18}/>, color: 'from-blue-500 to-cyan-500', bg: 'bg-blue-50 dark:bg-blue-500/10' },
+                  { label: 'Active Convos', value: stats.active, icon: <MessageSquare size={18}/>, color: 'from-amber-500 to-orange-500', bg: 'bg-amber-50 dark:bg-amber-500/10' },
+                  { label: 'Recovered', value: stats.recovered, icon: <RefreshCcw size={18}/>, color: 'from-emerald-500 to-green-500', bg: 'bg-emerald-50 dark:bg-emerald-500/10' }
                 ].map((stat, i) => (
-                  <div key={i} className={`bg-white dark:bg-[#1e2024] border border-gray-100 dark:border-transparent ${i===1?'dark:border-[#fdd55a]/20 border-orange-200':'dark:border-[#3b494b]/10'} rounded-xl p-6 relative overflow-hidden group shadow-sm dark:shadow-none`}>
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="w-8 h-8 rounded-lg bg-gray-50 dark:bg-[#0c0e12] border border-gray-100 dark:border-[#3b494b]/30 flex items-center justify-center">
-                        {stat.icon}
+                  <div key={i} className="bg-white dark:bg-[#1a1c22] border border-gray-200/60 dark:border-[#2a2c31] rounded-2xl p-5 card-hover">
+                    <div className="flex items-center justify-between mb-4">
+                      <p className="text-xs font-semibold text-gray-500 dark:text-[#6b7280] uppercase tracking-wider">{stat.label}</p>
+                      <div className={`w-8 h-8 rounded-lg ${stat.bg} flex items-center justify-center`}>
+                        <div className={`bg-gradient-to-r ${stat.color} bg-clip-text`}>{stat.icon}</div>
                       </div>
-                      <h3 className="text-gray-500 dark:text-[#b9cacb] font-semibold text-sm uppercase tracking-wider">{stat.label}</h3>
                     </div>
-                    <p className="text-4xl font-black text-gray-900 dark:text-white mb-2 tracking-tight">{stat.value}</p>
+                    <p className="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">{stat.value}</p>
                   </div>
                 ))}
               </section>
 
-              <section className="bg-white dark:bg-[#1e2024] rounded-2xl border border-gray-100 dark:border-transparent p-6 shadow-sm">
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-xl font-bold text-gray-900 dark:text-[#e2e2e8]">Recent AI Conversations</h3>
+              <section className="bg-white dark:bg-[#1a1c22] rounded-2xl border border-gray-200/60 dark:border-[#2a2c31] overflow-hidden">
+                <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-[#2a2c31]">
+                  <h3 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider">Recent Conversations</h3>
+                  <button onClick={() => setActiveTab('chats')} className="text-xs text-blue-600 dark:text-[#00f0ff] font-semibold hover:underline">View All</button>
                 </div>
-                
-                <div className="space-y-4">
+                <div className="divide-y divide-gray-50 dark:divide-[#1e2024]">
                   {leads.slice(0,5).map((lead: any, i) => (
-                    <div key={i} onClick={() => { setActiveTab('chats'); fetchLeadChat(lead.phone); }} className="flex items-center justify-between p-4 rounded-xl bg-gray-50 dark:bg-[#0c0e12] border border-gray-100 dark:border-[#3b494b]/20 hover:border-gray-300 transition-colors group cursor-pointer">
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-full bg-blue-100 dark:bg-[#1e2024] flex items-center justify-center text-blue-600 dark:text-[#00f0ff] font-bold">
+                    <div key={i} onClick={() => { setActiveTab('chats'); fetchLeadChat(lead.phone); }} className="flex items-center justify-between px-6 py-3.5 hover:bg-gray-50/50 dark:hover:bg-[#1e2024]/50 transition-colors cursor-pointer group">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-400 to-cyan-400 dark:from-[#00f0ff] dark:to-[#00c8ff] flex items-center justify-center text-white dark:text-[#0c0e12] text-xs font-bold">
                           {lead.name ? lead.name.substring(0,2).toUpperCase() : 'NA'}
                         </div>
                         <div>
-                          <p className="font-bold text-gray-900 dark:text-white text-base group-hover:text-blue-600 dark:group-hover:text-[#00f0ff]">{lead.name || 'Unknown User'}</p>
-                          <p className="text-sm text-gray-500 dark:text-[#b9cacb]">{lead.phone}</p>
+                          <p className="text-sm font-semibold text-gray-800 dark:text-white group-hover:text-blue-600 dark:group-hover:text-[#00f0ff] transition-colors">{lead.name || 'Unknown'}</p>
+                          <p className="text-xs text-gray-400 dark:text-[#6b7280]">{lead.phone}</p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-6">
-                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${lead.status === 'Hot' ? 'bg-red-100 text-red-600 dark:bg-red-500/20 dark:text-red-400' : lead.status === 'Warm' ? 'bg-orange-100 text-orange-600 dark:bg-orange-500/20 dark:text-orange-400' : 'bg-blue-100 text-blue-600 dark:bg-blue-500/20 dark:text-[#00f0ff]'}`}>
-                          {lead.status}
-                        </span>
-                        <div className="text-right hidden sm:block">
-                          <p className="text-xs text-gray-500 dark:text-[#b9cacb]">{new Date(lead.last_message_at || lead.created_at).toLocaleTimeString()}</p>
-                        </div>
-                        <ArrowRight size={18} className="text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      <div className="flex items-center gap-4">
+                        <span className={statusBadge(lead.status)}>{lead.status}</span>
+                        <p className="text-[11px] text-gray-400 hidden sm:block">{new Date(lead.last_message_at || lead.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
+                        <ArrowRight size={14} className="text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity" />
                       </div>
                     </div>
                   ))}
-                  {leads.length === 0 && (
-                    <p className="text-center text-gray-500 dark:text-[#b9cacb] py-8">No conversations yet.</p>
-                  )}
+                  {leads.length === 0 && <p className="text-center text-gray-400 py-10 text-sm">No conversations yet.</p>}
                 </div>
               </section>
-            </>
+            </div>
           )}
 
+          {/* ─── LEADS ─── */}
           {activeTab === 'leads' && (
-            <div className="bg-white dark:bg-[#1e2024] rounded-2xl border border-gray-100 dark:border-transparent p-6 shadow-sm">
-              <h3 className="text-xl font-bold text-gray-900 dark:text-[#e2e2e8] mb-6">WhatsApp Live Leads</h3>
+            <div className="animate-fade-in bg-white dark:bg-[#1a1c22] rounded-2xl border border-gray-200/60 dark:border-[#2a2c31] overflow-hidden">
+              <div className="px-6 py-4 border-b border-gray-100 dark:border-[#2a2c31]">
+                <h3 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider">WhatsApp Live Leads</h3>
+              </div>
               <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse min-w-[600px]">
+                <table className="w-full text-left min-w-[600px]">
                   <thead>
-                    <tr className="border-b border-gray-100 dark:border-[#3b494b]/20 text-gray-500 dark:text-[#b9cacb] text-sm">
-                      <th className="pb-3 px-4 font-semibold uppercase tracking-wider text-xs">Name</th>
-                      <th className="pb-3 px-4 font-semibold uppercase tracking-wider text-xs">Phone</th>
-                      <th className="pb-3 px-4 font-semibold uppercase tracking-wider text-xs">Status</th>
-                      <th className="pb-3 px-4 font-semibold uppercase tracking-wider text-xs">Last Message</th>
+                    <tr className="border-b border-gray-100 dark:border-[#2a2c31]">
+                      <th className="py-3 px-6 text-[11px] font-semibold text-gray-400 dark:text-[#6b7280] uppercase tracking-wider">Name</th>
+                      <th className="py-3 px-6 text-[11px] font-semibold text-gray-400 dark:text-[#6b7280] uppercase tracking-wider">Phone</th>
+                      <th className="py-3 px-6 text-[11px] font-semibold text-gray-400 dark:text-[#6b7280] uppercase tracking-wider">Status</th>
+                      <th className="py-3 px-6 text-[11px] font-semibold text-gray-400 dark:text-[#6b7280] uppercase tracking-wider">Last Activity</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="divide-y divide-gray-50 dark:divide-[#1e2024]">
                     {leads.map((lead: any) => (
-                      <tr key={lead.id} onClick={() => { setActiveTab('chats'); fetchLeadChat(lead.phone); }} className="border-b border-gray-50 dark:border-[#3b494b]/10 hover:bg-gray-50 dark:hover:bg-[#2a2c31] transition-colors cursor-pointer">
-                        <td className="py-4 px-4 font-medium text-gray-900 dark:text-white">{lead.name || 'Unknown'}</td>
-                        <td className="py-4 px-4 text-gray-500 dark:text-[#b9cacb]">{lead.phone}</td>
-                        <td className="py-4 px-4">
-                          <span className={`px-3 py-1 rounded-full text-xs font-bold ${lead.status === 'Hot' ? 'bg-red-100 text-red-600 dark:bg-red-500/20 dark:text-red-400' : lead.status === 'Warm' ? 'bg-orange-100 text-orange-600 dark:bg-orange-500/20 dark:text-orange-400' : 'bg-blue-100 text-blue-600 dark:bg-blue-500/20 dark:text-[#00f0ff]'}`}>{lead.status}</span>
-                        </td>
-                        <td className="py-4 px-4 text-gray-500 dark:text-[#b9cacb] text-sm">
-                          {new Date(lead.last_message_at || lead.created_at).toLocaleString()}
-                        </td>
+                      <tr key={lead.id} onClick={() => { setActiveTab('chats'); fetchLeadChat(lead.phone); }} className="hover:bg-gray-50/50 dark:hover:bg-[#1e2024]/50 transition-colors cursor-pointer">
+                        <td className="py-3.5 px-6 font-medium text-sm text-gray-800 dark:text-white">{lead.name || 'Unknown'}</td>
+                        <td className="py-3.5 px-6 text-sm text-gray-500 dark:text-[#8b8f96]">{lead.phone}</td>
+                        <td className="py-3.5 px-6"><span className={statusBadge(lead.status)}>{lead.status}</span></td>
+                        <td className="py-3.5 px-6 text-sm text-gray-400">{new Date(lead.last_message_at || lead.created_at).toLocaleString()}</td>
                       </tr>
                     ))}
-                    {leads.length === 0 && (
-                      <tr>
-                        <td colSpan={4} className="py-8 text-center text-gray-500 dark:text-[#b9cacb]">No leads found.</td>
-                      </tr>
-                    )}
+                    {leads.length === 0 && <tr><td colSpan={4} className="py-10 text-center text-gray-400 text-sm">No leads found.</td></tr>}
                   </tbody>
                 </table>
               </div>
             </div>
           )}
 
+          {/* ─── INVENTORY ─── */}
           {activeTab === 'inventory' && (
-            <div className="space-y-6">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-[#1e2024] rounded-2xl border border-gray-100 dark:border-transparent p-6 shadow-sm">
+            <div className="animate-fade-in space-y-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                  <h3 className="text-xl font-bold text-gray-900 dark:text-[#e2e2e8]">Property Inventory</h3>
-                  <p className="text-sm text-gray-500 dark:text-[#b9cacb]">AI will pitch these properties to WhatsApp leads.</p>
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-white">Property Inventory</h3>
+                  <p className="text-sm text-gray-500 dark:text-[#6b7280]">AI will pitch these properties to WhatsApp leads</p>
                 </div>
-                <button 
-                  onClick={() => setIsAddingProp(!isAddingProp)}
-                  className="px-4 py-2 bg-blue-600 dark:bg-[#00f0ff] text-white dark:text-[#0c0e12] rounded-xl text-sm font-bold flex items-center gap-2 w-fit"
-                >
+                <button onClick={() => setIsAddingProp(!isAddingProp)} className="px-4 py-2.5 bg-gradient-to-r from-blue-600 to-cyan-600 dark:from-[#00f0ff] dark:to-[#00c8ff] text-white dark:text-[#0c0e12] rounded-xl text-sm font-semibold flex items-center gap-2 w-fit hover:shadow-lg hover:shadow-blue-500/20 active:scale-[0.98] transition-all">
                   <Plus size={16} /> Add Property
                 </button>
               </div>
 
               {isAddingProp && (
-                <div className="bg-gray-50 dark:bg-[#1e2024] rounded-2xl border border-blue-200 dark:border-[#00f0ff]/30 p-6 shadow-sm animate-in slide-in-from-top-4">
-                  <h4 className="font-bold mb-4">Add New Property</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                    <input 
-                      type="text" placeholder="Title (e.g. 3BHK Luxury Villa)" 
-                      className="px-4 py-2 bg-white dark:bg-[#0c0e12] border border-gray-200 dark:border-[#3b494b]/30 rounded-xl outline-none focus:border-blue-500"
-                      value={newProp.title} onChange={e => setNewProp({...newProp, title: e.target.value})}
-                    />
-                    <input 
-                      type="text" placeholder="Location (e.g. Palm Jumeirah)" 
-                      className="px-4 py-2 bg-white dark:bg-[#0c0e12] border border-gray-200 dark:border-[#3b494b]/30 rounded-xl outline-none focus:border-blue-500"
-                      value={newProp.location} onChange={e => setNewProp({...newProp, location: e.target.value})}
-                    />
-                    <input 
-                      type="text" placeholder="Price (e.g. 4.5M AED)" 
-                      className="px-4 py-2 bg-white dark:bg-[#0c0e12] border border-gray-200 dark:border-[#3b494b]/30 rounded-xl outline-none focus:border-blue-500"
-                      value={newProp.price} onChange={e => setNewProp({...newProp, price: e.target.value})}
-                    />
-                    <input 
-                      type="text" placeholder="Description/Highlights" 
-                      className="px-4 py-2 bg-white dark:bg-[#0c0e12] border border-gray-200 dark:border-[#3b494b]/30 rounded-xl outline-none focus:border-blue-500"
-                      value={newProp.description} onChange={e => setNewProp({...newProp, description: e.target.value})}
-                    />
+                <div className="bg-white dark:bg-[#1a1c22] rounded-2xl border border-blue-200 dark:border-[#00f0ff]/20 p-6 animate-fade-in">
+                  <h4 className="font-bold text-sm mb-4">Add New Property</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+                    <input type="text" placeholder="Title (e.g. 3BHK Luxury Villa)" className="px-4 py-2.5 bg-gray-50 dark:bg-[#0c0e12] border border-gray-200 dark:border-[#2a2c31] rounded-xl outline-none focus:border-blue-400 text-sm transition-colors" value={newProp.title} onChange={e => setNewProp({...newProp, title: e.target.value})} />
+                    <input type="text" placeholder="Location (e.g. Palm Jumeirah)" className="px-4 py-2.5 bg-gray-50 dark:bg-[#0c0e12] border border-gray-200 dark:border-[#2a2c31] rounded-xl outline-none focus:border-blue-400 text-sm transition-colors" value={newProp.location} onChange={e => setNewProp({...newProp, location: e.target.value})} />
+                    <input type="text" placeholder="Price (e.g. 4.5M AED)" className="px-4 py-2.5 bg-gray-50 dark:bg-[#0c0e12] border border-gray-200 dark:border-[#2a2c31] rounded-xl outline-none focus:border-blue-400 text-sm transition-colors" value={newProp.price} onChange={e => setNewProp({...newProp, price: e.target.value})} />
+                    <input type="text" placeholder="Description" className="px-4 py-2.5 bg-gray-50 dark:bg-[#0c0e12] border border-gray-200 dark:border-[#2a2c31] rounded-xl outline-none focus:border-blue-400 text-sm transition-colors" value={newProp.description} onChange={e => setNewProp({...newProp, description: e.target.value})} />
                   </div>
                   <div className="flex gap-2">
-                    <button onClick={handleAddProperty} className="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-bold">Save to Database</button>
-                    <button onClick={() => setIsAddingProp(false)} className="px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded-xl text-sm font-bold">Cancel</button>
+                    <button onClick={handleAddProperty} className="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 transition-colors">Save</button>
+                    <button onClick={() => setIsAddingProp(false)} className="px-4 py-2 bg-gray-100 dark:bg-[#2a2c31] rounded-xl text-sm font-semibold hover:bg-gray-200 dark:hover:bg-[#333539] transition-colors">Cancel</button>
                   </div>
                 </div>
               )}
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {inventory.map((prop: any) => (
-                  <div key={prop.id} className="bg-white dark:bg-[#1e2024] rounded-2xl border border-gray-100 dark:border-transparent p-5 shadow-sm hover:shadow-md transition-shadow relative group">
-                    <button onClick={() => handleDeleteProperty(prop.id)} className="absolute top-4 right-4 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Trash2 size={18} />
-                    </button>
-                    <div className="w-12 h-12 bg-blue-50 dark:bg-[#0c0e12] rounded-xl flex items-center justify-center mb-4 text-blue-600 dark:text-[#00f0ff]">
-                      <Building size={24} />
-                    </div>
-                    <h4 className="font-bold text-lg mb-1">{prop.title}</h4>
-                    <div className="flex items-center gap-1 text-sm text-gray-500 dark:text-[#b9cacb] mb-1">
-                      <MapPin size={14} /> {prop.location}
-                    </div>
-                    <div className="flex items-center gap-1 text-sm font-bold text-green-600 dark:text-[#00ff88] mb-3">
-                      <DollarSign size={14} /> {prop.price}
-                    </div>
-                    <p className="text-sm text-gray-600 dark:text-[#e2e2e8]/70 line-clamp-2">{prop.description}</p>
+                  <div key={prop.id} className="bg-white dark:bg-[#1a1c22] rounded-2xl border border-gray-200/60 dark:border-[#2a2c31] p-5 card-hover relative group">
+                    <button onClick={() => handleDeleteProperty(prop.id)} className="absolute top-4 right-4 text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"><Trash2 size={16} /></button>
+                    <div className="w-10 h-10 bg-blue-50 dark:bg-blue-500/10 rounded-xl flex items-center justify-center mb-3"><Building size={20} className="text-blue-500" /></div>
+                    <h4 className="font-bold text-sm mb-1">{prop.title}</h4>
+                    <div className="flex items-center gap-1 text-xs text-gray-400 mb-0.5"><MapPin size={12} /> {prop.location}</div>
+                    <div className="flex items-center gap-1 text-sm font-bold text-emerald-600 dark:text-[#00ff88] mb-2"><DollarSign size={14} /> {prop.price}</div>
+                    <p className="text-xs text-gray-500 dark:text-[#8b8f96] line-clamp-2">{prop.description}</p>
                   </div>
                 ))}
                 {inventory.length === 0 && !isAddingProp && (
-                  <div className="col-span-full text-center py-12 text-gray-500 border border-dashed rounded-2xl border-gray-300 dark:border-[#3b494b]/30">
-                    No properties added yet. Click "Add Property" to build your inventory.
+                  <div className="col-span-full text-center py-12 text-gray-400 text-sm border border-dashed rounded-2xl border-gray-200 dark:border-[#2a2c31]">
+                    No properties added yet. Click &quot;Add Property&quot; to start.
                   </div>
                 )}
               </div>
             </div>
           )}
 
+          {/* ─── CHATS ─── */}
           {activeTab === 'chats' && (
-            <div className="flex h-[calc(100vh-90px)] -m-4 md:-m-10 bg-gray-50 dark:bg-[#111318]">
-              <div className="w-[320px] shrink-0 border-r border-gray-200 dark:border-[#3b494b]/20 bg-white dark:bg-[#1e2024] flex flex-col hidden md:flex">
-                <div className="p-4 border-b border-gray-200 dark:border-[#3b494b]/20 font-bold text-lg">
-                  Conversations
+            <div className="flex h-[calc(100vh-64px)] bg-[#f8f9fc] dark:bg-[#111318]">
+              <div className="w-[300px] shrink-0 border-r border-gray-200/80 dark:border-[#1e2024] bg-white dark:bg-[#0c0e12] flex-col hidden md:flex">
+                <div className="p-4 border-b border-gray-100 dark:border-[#1e2024]">
+                  <p className="text-xs font-bold text-gray-500 dark:text-[#6b7280] uppercase tracking-wider">Conversations</p>
                 </div>
                 <div className="flex-1 overflow-y-auto">
                   {leads.map((lead: any) => (
-                    <div 
-                      key={lead.id} 
-                      onClick={() => fetchLeadChat(lead.phone)}
-                      className={`p-4 border-b border-gray-100 dark:border-[#3b494b]/10 cursor-pointer transition-colors ${selectedLeadPhone === lead.phone ? 'bg-blue-50 dark:bg-[#0c0e12] border-l-4 border-l-blue-600 dark:border-l-[#00f0ff]' : 'hover:bg-gray-50 dark:hover:bg-[#2a2c31] border-l-4 border-l-transparent'}`}
-                    >
-                      <p className="font-bold text-gray-900 dark:text-white">{lead.name || 'Unknown'}</p>
-                      <p className="text-xs text-gray-500 dark:text-[#b9cacb] mb-2">{lead.phone}</p>
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${lead.status === 'Hot' ? 'bg-red-100 text-red-600 dark:bg-red-500/20 dark:text-red-400' : lead.status === 'Warm' ? 'bg-orange-100 text-orange-600 dark:bg-orange-500/20 dark:text-orange-400' : 'bg-blue-100 text-blue-600 dark:bg-blue-500/20 dark:text-[#00f0ff]'}`}>{lead.status}</span>
+                    <div key={lead.id} onClick={() => fetchLeadChat(lead.phone)}
+                      className={`px-4 py-3 cursor-pointer transition-all border-l-2 ${selectedLeadPhone === lead.phone ? 'bg-blue-50/50 dark:bg-[#1a1c22] border-l-blue-500 dark:border-l-[#00f0ff]' : 'border-l-transparent hover:bg-gray-50 dark:hover:bg-[#1a1c22]/50'}`}>
+                      <p className="font-semibold text-sm text-gray-800 dark:text-white">{lead.name || 'Unknown'}</p>
+                      <div className="flex items-center justify-between mt-1">
+                        <p className="text-[11px] text-gray-400">{lead.phone}</p>
+                        <span className={statusBadge(lead.status)}>{lead.status}</span>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -447,326 +464,276 @@ export default function Dashboard() {
               <div className="flex-1 flex flex-col bg-white dark:bg-[#111318]">
                 {selectedLeadPhone ? (
                   <>
-                    <div className="p-4 border-b border-gray-200 dark:border-[#3b494b]/20 bg-white dark:bg-[#1e2024] flex items-center justify-between shadow-sm">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-[#0c0e12] flex items-center justify-center text-blue-600 dark:text-[#00f0ff] font-bold">
-                          {leads.find(l => l.phone === selectedLeadPhone)?.name?.substring(0,2).toUpperCase() || 'U'}
-                        </div>
-                        <div>
-                          <p className="font-bold text-gray-900 dark:text-white">{leads.find(l => l.phone === selectedLeadPhone)?.name || 'Unknown'}</p>
-                          <p className="text-xs text-green-500">Active on WhatsApp</p>
-                        </div>
+                    <div className="px-5 py-3 border-b border-gray-200/80 dark:border-[#1e2024] bg-white dark:bg-[#1a1c22] flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-400 to-cyan-400 flex items-center justify-center text-white text-xs font-bold">
+                        {leads.find(l => l.phone === selectedLeadPhone)?.name?.substring(0,2).toUpperCase() || 'U'}
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-gray-800 dark:text-white">{leads.find(l => l.phone === selectedLeadPhone)?.name || 'Unknown'}</p>
+                        <p className="text-[11px] text-emerald-500 flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500 pulse-green inline-block"></span> Active on WhatsApp</p>
                       </div>
                     </div>
-                    
-                    <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-gray-50 dark:bg-[#0c0e12]">
+                    <div className="flex-1 overflow-y-auto p-5 space-y-3 bg-[#f8f9fc] dark:bg-[#0c0e12]">
                       {leadChatHistory.map((chat: any) => (
                         <div key={chat.id} className={`flex ${chat.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                          <div className={`max-w-[80%] rounded-2xl px-5 py-3 ${chat.role === 'user' ? 'bg-blue-600 dark:bg-[#00f0ff] text-white dark:text-[#0c0e12] rounded-tr-sm' : 'bg-white dark:bg-[#1e2024] border border-gray-200 dark:border-[#3b494b]/30 text-gray-800 dark:text-[#e2e2e8] rounded-tl-sm'}`}>
-                            <div className="flex items-center gap-2 mb-1">
-                              {chat.role === 'ai' && <Bot size={14} className="text-blue-600 dark:text-[#00f0ff]" />}
-                              <span className="text-[10px] font-bold opacity-70 uppercase tracking-wider">{chat.role === 'ai' ? 'Aura (AI)' : 'Lead'}</span>
+                          <div className={`max-w-[75%] rounded-2xl px-4 py-2.5 ${chat.role === 'user' ? 'bg-blue-600 dark:bg-[#00f0ff] text-white dark:text-[#0c0e12] rounded-br-md' : 'bg-white dark:bg-[#1a1c22] border border-gray-200 dark:border-[#2a2c31] text-gray-700 dark:text-[#e2e2e8] rounded-bl-md shadow-sm'}`}>
+                            <div className="flex items-center gap-1.5 mb-0.5">
+                              {chat.role === 'ai' && <Bot size={12} className="text-blue-500 dark:text-[#00f0ff]" />}
+                              <span className="text-[9px] font-bold opacity-60 uppercase tracking-wider">{chat.role === 'ai' ? 'Aura' : 'Lead'}</span>
                             </div>
-                            <p className="whitespace-pre-wrap text-sm leading-relaxed">{chat.message}</p>
-                            <p className="text-[10px] opacity-60 text-right mt-1">{new Date(chat.created_at).toLocaleTimeString()}</p>
+                            <p className="whitespace-pre-wrap text-[13px] leading-relaxed">{chat.message}</p>
+                            <p className="text-[9px] opacity-50 text-right mt-1">{new Date(chat.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
                           </div>
                         </div>
                       ))}
-                      {leadChatHistory.length === 0 && (
-                        <div className="h-full flex items-center justify-center text-gray-500">No chat history available.</div>
-                      )}
+                      {leadChatHistory.length === 0 && <div className="h-full flex items-center justify-center text-gray-400 text-sm">Select a conversation to view.</div>}
                     </div>
                   </>
                 ) : (
-                  <div className="flex-1 flex flex-col items-center justify-center text-gray-500 dark:text-[#b9cacb]">
-                    <MessageSquare size={48} className="mb-4 opacity-20" />
-                    <p>Select a lead to view their AI conversation history.</p>
+                  <div className="flex-1 flex flex-col items-center justify-center text-gray-400">
+                    <MessageSquare size={40} className="mb-3 opacity-20" />
+                    <p className="text-sm">Select a lead to view their chat history</p>
                   </div>
                 )}
               </div>
             </div>
           )}
 
+          {/* ─── ANALYTICS ─── */}
           {activeTab === 'analytics' && (
-            <div className="space-y-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-xl font-bold text-gray-900 dark:text-[#e2e2e8]">AI Sales Intelligence</h3>
-                  <p className="text-sm text-gray-500 dark:text-[#b9cacb]">Performance metrics and insights from your AI Agent.</p>
-                </div>
+            <div className="animate-fade-in space-y-5">
+              <div>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white">AI Sales Intelligence</h3>
+                <p className="text-sm text-gray-500 dark:text-[#6b7280]">Performance metrics from your AI agent</p>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="bg-white dark:bg-[#1e2024] p-5 rounded-2xl border border-gray-100 dark:border-transparent shadow-sm">
-                  <p className="text-sm text-gray-500 dark:text-[#b9cacb] mb-1 font-semibold uppercase tracking-wider">Total Interactions</p>
-                  <p className="text-3xl font-black">{leads.length}</p>
-                </div>
-                <div className="bg-white dark:bg-[#1e2024] p-5 rounded-2xl border border-gray-100 dark:border-transparent shadow-sm">
-                  <p className="text-sm text-gray-500 dark:text-[#b9cacb] mb-1 font-semibold uppercase tracking-wider">Conversion Rate</p>
-                  <p className="text-3xl font-black text-green-600 dark:text-[#00ff88]">
-                    {leads.length ? Math.round(((stats.active + stats.recovered) / leads.length) * 100) : 0}%
-                  </p>
-                </div>
-                <div className="bg-white dark:bg-[#1e2024] p-5 rounded-2xl border border-gray-100 dark:border-transparent shadow-sm">
-                  <p className="text-sm text-gray-500 dark:text-[#b9cacb] mb-1 font-semibold uppercase tracking-wider">Human Time Saved</p>
-                  <p className="text-3xl font-black text-blue-600 dark:text-[#00f0ff]">{Math.round(leads.length * 12.5 / 60)} hrs</p>
-                  <p className="text-[10px] text-gray-400 mt-1">Based on 12.5 mins per lead</p>
-                </div>
-                <div className="bg-white dark:bg-[#1e2024] p-5 rounded-2xl border border-gray-100 dark:border-transparent shadow-sm">
-                  <p className="text-sm text-gray-500 dark:text-[#b9cacb] mb-1 font-semibold uppercase tracking-wider">Brokerage Saved</p>
-                  <p className="text-3xl font-black text-purple-600 dark:text-[#b088ff]">${leads.length * 25}</p>
-                  <p className="text-[10px] text-gray-400 mt-1">Estimated at $25/lead handling</p>
-                </div>
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                {[
+                  { label: 'Total Interactions', value: leads.length, color: 'text-gray-900 dark:text-white' },
+                  { label: 'Conversion Rate', value: `${leads.length ? Math.round(((stats.active + stats.recovered) / leads.length) * 100) : 0}%`, color: 'text-emerald-600 dark:text-[#00ff88]' },
+                  { label: 'Time Saved', value: `${Math.round(leads.length * 12.5 / 60)}h`, color: 'text-blue-600 dark:text-[#00f0ff]' },
+                  { label: 'Cost Saved', value: `$${leads.length * 25}`, color: 'text-purple-600 dark:text-purple-400' },
+                ].map((m, i) => (
+                  <div key={i} className="bg-white dark:bg-[#1a1c22] p-5 rounded-2xl border border-gray-200/60 dark:border-[#2a2c31] card-hover">
+                    <p className="text-[11px] text-gray-400 dark:text-[#6b7280] font-semibold uppercase tracking-wider mb-2">{m.label}</p>
+                    <p className={`text-2xl font-bold ${m.color}`}>{m.value}</p>
+                  </div>
+                ))}
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="bg-white dark:bg-[#1e2024] p-6 rounded-2xl border border-gray-100 dark:border-transparent shadow-sm">
-                  <h4 className="font-bold mb-4">Lead Quality Pipeline</h4>
-                  <div className="space-y-4">
-                    <div>
-                      <div className="flex justify-between text-sm mb-1">
-                        <span className="font-semibold text-red-500">Hot Leads (Ready to Buy)</span>
-                        <span>{leads.filter(l => l.status === 'Hot').length}</span>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <div className="bg-white dark:bg-[#1a1c22] p-6 rounded-2xl border border-gray-200/60 dark:border-[#2a2c31]">
+                  <h4 className="text-sm font-bold mb-5">Lead Quality Pipeline</h4>
+                  {[
+                    { label: 'Hot Leads', status: 'Hot', color: 'bg-red-500' },
+                    { label: 'Warm Leads', status: 'Warm', color: 'bg-amber-500' },
+                    { label: 'New / Cold', status: 'New', color: 'bg-blue-500' },
+                  ].map((bar, i) => (
+                    <div key={i} className="mb-4">
+                      <div className="flex justify-between text-xs mb-1.5">
+                        <span className="font-semibold text-gray-600 dark:text-gray-300">{bar.label}</span>
+                        <span className="text-gray-400">{leads.filter(l => l.status === bar.status).length}</span>
                       </div>
-                      <div className="w-full bg-gray-100 dark:bg-[#0c0e12] rounded-full h-2.5">
-                        <div className="bg-red-500 h-2.5 rounded-full" style={{ width: `${leads.length ? (leads.filter(l => l.status === 'Hot').length / leads.length) * 100 : 0}%` }}></div>
-                      </div>
-                    </div>
-                    <div>
-                      <div className="flex justify-between text-sm mb-1">
-                        <span className="font-semibold text-orange-500">Warm Leads (Interested)</span>
-                        <span>{leads.filter(l => l.status === 'Warm').length}</span>
-                      </div>
-                      <div className="w-full bg-gray-100 dark:bg-[#0c0e12] rounded-full h-2.5">
-                        <div className="bg-orange-500 h-2.5 rounded-full" style={{ width: `${leads.length ? (leads.filter(l => l.status === 'Warm').length / leads.length) * 100 : 0}%` }}></div>
+                      <div className="w-full bg-gray-100 dark:bg-[#0c0e12] rounded-full h-2">
+                        <div className={`${bar.color} h-2 rounded-full transition-all duration-700`} style={{ width: `${leads.length ? (leads.filter(l => l.status === bar.status).length / leads.length) * 100 : 0}%` }}></div>
                       </div>
                     </div>
-                    <div>
-                      <div className="flex justify-between text-sm mb-1">
-                        <span className="font-semibold text-blue-500">New / Cold Leads</span>
-                        <span>{leads.filter(l => l.status === 'New').length}</span>
-                      </div>
-                      <div className="w-full bg-gray-100 dark:bg-[#0c0e12] rounded-full h-2.5">
-                        <div className="bg-blue-500 h-2.5 rounded-full" style={{ width: `${leads.length ? (leads.filter(l => l.status === 'New').length / leads.length) * 100 : 0}%` }}></div>
-                      </div>
-                    </div>
-                  </div>
+                  ))}
                 </div>
 
-                <div className="bg-white dark:bg-[#1e2024] p-6 rounded-2xl border border-gray-100 dark:border-transparent shadow-sm">
-                  <h4 className="font-bold mb-4">AI Sentiment Analysis</h4>
-                  <div className="flex items-center justify-center h-40">
-                    <div className="relative w-40 h-40 rounded-full border-[16px] border-green-500 flex items-center justify-center">
-                      <div className="absolute inset-0 border-[16px] border-gray-100 dark:border-[#0c0e12] rounded-full" style={{ clipPath: 'polygon(50% 50%, 100% 0, 100% 100%, 0 100%, 0 0)' }}></div>
-                      <div className="text-center z-10">
-                        <p className="text-3xl font-black">78%</p>
-                        <p className="text-[10px] uppercase font-bold text-gray-500">Positive</p>
-                      </div>
+                <div className="bg-white dark:bg-[#1a1c22] p-6 rounded-2xl border border-gray-200/60 dark:border-[#2a2c31] flex flex-col items-center justify-center">
+                  <div className="relative w-32 h-32 mb-4">
+                    <svg className="w-32 h-32 -rotate-90" viewBox="0 0 120 120">
+                      <circle cx="60" cy="60" r="50" fill="none" stroke="currentColor" strokeWidth="10" className="text-gray-100 dark:text-[#1e2024]" />
+                      <circle cx="60" cy="60" r="50" fill="none" stroke="url(#grad)" strokeWidth="10" strokeLinecap="round" strokeDasharray={`${78 * 3.14} ${100 * 3.14}`} />
+                      <defs><linearGradient id="grad"><stop offset="0%" stopColor="#3b82f6"/><stop offset="100%" stopColor="#06b6d4"/></linearGradient></defs>
+                    </svg>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center">
+                      <p className="text-2xl font-bold">78%</p>
+                      <p className="text-[9px] text-gray-400 uppercase font-semibold tracking-wider">Positive</p>
                     </div>
                   </div>
-                  <p className="text-center text-sm text-gray-500 mt-4">Buyers are showing high interest in luxury villas and off-plan apartments this week.</p>
+                  <h4 className="text-sm font-bold mb-1">AI Sentiment</h4>
+                  <p className="text-xs text-gray-400 text-center max-w-[200px]">High interest in luxury villas and off-plan apartments</p>
                 </div>
               </div>
             </div>
           )}
 
+          {/* ─── RECOVERY / CAMPAIGNS ─── */}
           {activeTab === 'recovery' && (
-            <div className="space-y-6">
-              <div className="bg-white dark:bg-[#1e2024] p-6 rounded-2xl border border-gray-100 dark:border-transparent shadow-sm">
-                <h3 className="text-xl font-bold text-gray-900 dark:text-[#e2e2e8] mb-2">Dead Lead Recovery Campaigns</h3>
-                <p className="text-sm text-gray-500 dark:text-[#b9cacb] mb-6">Send a broadcast WhatsApp message to a specific segment of leads to re-engage them automatically.</p>
+            <div className="animate-fade-in">
+              <div className="bg-white dark:bg-[#1a1c22] p-6 md:p-8 rounded-2xl border border-gray-200/60 dark:border-[#2a2c31]">
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">Campaign Broadcasts</h3>
+                <p className="text-sm text-gray-500 dark:text-[#6b7280] mb-6">Send WhatsApp broadcasts to re-engage leads</p>
                 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                  <div>
-                    <label className="block text-sm font-semibold mb-2">Select Target Audience</label>
-                    <div className="flex gap-2 mb-6">
-                      {['New', 'Warm', 'Cold'].map(status => (
-                        <button 
-                          key={status}
-                          onClick={() => setCampaignStatus(status)}
-                          className={`px-4 py-2 rounded-xl text-sm font-bold border transition-colors ${campaignStatus === status ? 'border-blue-600 dark:border-[#00f0ff] bg-blue-50 dark:bg-[#00f0ff]/10 text-blue-600 dark:text-[#00f0ff]' : 'border-gray-200 dark:border-[#3b494b]/30 text-gray-500 hover:bg-gray-50 dark:hover:bg-[#2a2c31]'}`}
-                        >
-                          {status} Leads
-                        </button>
-                      ))}
+                <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+                  <div className="lg:col-span-3 space-y-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-500 dark:text-[#6b7280] uppercase tracking-wider mb-2">Target Audience</label>
+                      <div className="flex gap-2">
+                        {['New', 'Warm', 'Cold'].map(status => (
+                          <button key={status} onClick={() => setCampaignStatus(status)}
+                            className={`px-4 py-2 rounded-xl text-xs font-semibold border transition-all ${campaignStatus === status ? 'border-blue-500 dark:border-[#00f0ff] bg-blue-50 dark:bg-[#00f0ff]/8 text-blue-600 dark:text-[#00f0ff]' : 'border-gray-200 dark:border-[#2a2c31] text-gray-400 hover:bg-gray-50 dark:hover:bg-[#1e2024]'}`}>
+                            {status} Leads
+                          </button>
+                        ))}
+                      </div>
                     </div>
-
-                    <label className="block text-sm font-semibold mb-2">Campaign Message</label>
-                    <textarea 
-                      value={campaignMsg}
-                      onChange={e => setCampaignMsg(e.target.value)}
-                      placeholder="Hi there! We have a new luxury property launch matching your previous interests. Would you like the brochure?"
-                      className="w-full h-32 px-4 py-3 bg-gray-50 dark:bg-[#0c0e12] border border-gray-200 dark:border-[#3b494b]/30 rounded-xl outline-none focus:border-blue-500 mb-4 resize-none"
-                    ></textarea>
-
-                    <button 
-                      onClick={handleSendCampaign}
-                      disabled={isSendingCampaign || !campaignMsg}
-                      className="w-full py-3 bg-blue-600 dark:bg-[#00f0ff] text-white dark:text-[#0c0e12] rounded-xl font-bold hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-                    >
-                      {isSendingCampaign ? 'Sending...' : <><RefreshCcw size={18} /> Launch Broadcast</>}
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-500 dark:text-[#6b7280] uppercase tracking-wider mb-2">Message</label>
+                      <textarea value={campaignMsg} onChange={e => setCampaignMsg(e.target.value)} placeholder="Hi! We have a new luxury property launch matching your interests..." className="w-full h-28 px-4 py-3 bg-gray-50 dark:bg-[#0c0e12] border border-gray-200 dark:border-[#2a2c31] rounded-xl outline-none focus:border-blue-400 resize-none text-sm transition-colors"></textarea>
+                    </div>
+                    <button onClick={handleSendCampaign} disabled={isSendingCampaign || !campaignMsg} className="w-full py-3 bg-gradient-to-r from-blue-600 to-cyan-600 dark:from-[#00f0ff] dark:to-[#00c8ff] text-white dark:text-[#0c0e12] rounded-xl font-semibold hover:shadow-lg hover:shadow-blue-500/20 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 active:scale-[0.98] transition-all">
+                      {isSendingCampaign ? 'Sending...' : <><RefreshCcw size={16} /> Launch Broadcast</>}
                     </button>
                   </div>
 
-                  <div className="bg-gray-50 dark:bg-[#0c0e12] border border-gray-200 dark:border-[#3b494b]/30 p-6 rounded-xl flex flex-col justify-center items-center text-center">
-                    <div className="w-16 h-16 bg-blue-100 dark:bg-[#00f0ff]/10 rounded-full flex items-center justify-center text-blue-600 dark:text-[#00f0ff] mb-4">
-                      <Users size={32} />
+                  <div className="lg:col-span-2 bg-gray-50 dark:bg-[#0c0e12] border border-gray-200 dark:border-[#2a2c31] p-6 rounded-xl flex flex-col justify-center items-center text-center">
+                    <div className="w-14 h-14 bg-blue-50 dark:bg-blue-500/10 rounded-2xl flex items-center justify-center mb-3">
+                      <Users size={28} className="text-blue-500" />
                     </div>
-                    <h4 className="font-bold text-lg mb-2">Targeting {leads.filter(l => l.status === campaignStatus).length} Leads</h4>
-                    <p className="text-sm text-gray-500 max-w-[250px]">Your message will be sent instantly to these leads via WhatsApp. Replies will be handled by the AI.</p>
+                    <p className="text-2xl font-bold mb-1">{leads.filter(l => l.status === campaignStatus).length}</p>
+                    <p className="text-xs text-gray-400">leads will receive this message</p>
                   </div>
                 </div>
               </div>
             </div>
           )}
 
-                           {activeTab === 'workflows' && (
-            <div className="space-y-8">
+          {/* ─── AUTOMATIONS / WORKFLOWS ─── */}
+          {activeTab === 'workflows' && (
+            <div className="animate-fade-in space-y-5">
               <div>
-                <h3 className="text-xl font-bold text-gray-900 dark:text-[#e2e2e8]">Integrations & Automations</h3>
-                <p className="text-sm text-gray-500 dark:text-[#b9cacb]">Connect your AI agent to external CRMs, channels, and custom n8n workflows.</p>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white">Integrations & Automations</h3>
+                <p className="text-sm text-gray-500 dark:text-[#6b7280]">Connect channels, CRMs, and n8n workflows</p>
               </div>
 
-              {/* Connected Channels */}
-              <div className="bg-white dark:bg-[#1e2024] p-6 rounded-2xl border border-gray-100 dark:border-transparent shadow-sm">
-                <h4 className="font-bold mb-4 flex items-center gap-2"><MessageSquare size={18} className="text-blue-500"/> Connected Channels</h4>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="bg-white dark:bg-[#1a1c22] p-6 rounded-2xl border border-gray-200/60 dark:border-[#2a2c31]">
+                <h4 className="text-sm font-bold mb-4 flex items-center gap-2"><MessageSquare size={16} className="text-blue-500"/> Connected Channels</h4>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   {[
-                    { name: 'WhatsApp', status: 'Connected', color: 'bg-green-500' },
-                    { name: 'Instagram', status: 'Coming Soon', color: 'bg-gray-300 dark:bg-gray-600' },
-                    { name: 'Property Finder', status: 'Coming Soon', color: 'bg-gray-300 dark:bg-gray-600' },
-                    { name: 'Bayut', status: 'Coming Soon', color: 'bg-gray-300 dark:bg-gray-600' }
-                  ].map(channel => (
-                    <div key={channel.name} className="p-4 rounded-xl border border-gray-100 dark:border-[#3b494b]/30 flex flex-col items-center justify-center text-center gap-2">
-                      <div className={`w-3 h-3 rounded-full ${channel.color}`}></div>
-                      <p className="font-semibold text-sm">{channel.name}</p>
-                      <p className="text-[10px] text-gray-500 uppercase tracking-widest">{channel.status}</p>
+                    { name: 'WhatsApp', status: 'Connected', connected: true },
+                    { name: 'Instagram', status: 'Coming Soon', connected: false },
+                    { name: 'Property Finder', status: 'Coming Soon', connected: false },
+                    { name: 'Bayut', status: 'Coming Soon', connected: false }
+                  ].map(ch => (
+                    <div key={ch.name} className="p-4 rounded-xl border border-gray-100 dark:border-[#2a2c31] flex flex-col items-center text-center gap-2 card-hover">
+                      <div className={`w-2.5 h-2.5 rounded-full ${ch.connected ? 'bg-emerald-500 pulse-green' : 'bg-gray-300 dark:bg-gray-600'}`}></div>
+                      <p className="text-sm font-semibold">{ch.name}</p>
+                      <p className="text-[10px] text-gray-400 uppercase tracking-widest">{ch.status}</p>
                     </div>
                   ))}
                 </div>
               </div>
 
-              {/* CRMs */}
-              <div className="bg-white dark:bg-[#1e2024] p-6 rounded-2xl border border-gray-100 dark:border-transparent shadow-sm">
-                <h4 className="font-bold mb-4 flex items-center gap-2"><Users size={18} className="text-orange-500"/> CRM Integrations</h4>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="bg-white dark:bg-[#1a1c22] p-6 rounded-2xl border border-gray-200/60 dark:border-[#2a2c31]">
+                <h4 className="text-sm font-bold mb-4 flex items-center gap-2"><Users size={16} className="text-amber-500"/> CRM Integrations</h4>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   {['HubSpot', 'Salesforce', 'Zoho CRM'].map(crm => (
-                    <div key={crm} className="p-4 rounded-xl border border-gray-100 dark:border-[#3b494b]/30 flex items-center justify-between">
-                      <p className="font-semibold text-sm">{crm}</p>
-                      <button className="px-3 py-1 bg-gray-100 dark:bg-[#0c0e12] text-xs font-bold rounded-lg hover:bg-gray-200 dark:hover:bg-[#2a2c31] transition-colors">Connect</button>
+                    <div key={crm} className="p-4 rounded-xl border border-gray-100 dark:border-[#2a2c31] flex items-center justify-between card-hover">
+                      <p className="text-sm font-semibold">{crm}</p>
+                      <button className="px-3 py-1.5 bg-gray-50 dark:bg-[#0c0e12] text-xs font-semibold rounded-lg hover:bg-gray-100 dark:hover:bg-[#1e2024] border border-gray-200 dark:border-[#2a2c31] transition-colors">Connect</button>
                     </div>
                   ))}
                 </div>
               </div>
 
-              {/* n8n Workflows */}
-              <div className="bg-white dark:bg-[#1e2024] p-6 rounded-2xl border border-blue-100 dark:border-[#00f0ff]/20 shadow-sm relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 dark:bg-[#00f0ff]/5 rounded-bl-full"></div>
-                <div className="flex justify-between items-start relative z-10">
+              <div className="bg-white dark:bg-[#1a1c22] p-6 rounded-2xl border border-blue-200/50 dark:border-[#00f0ff]/10 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-bl from-blue-500/5 to-transparent dark:from-[#00f0ff]/3 rounded-bl-full"></div>
+                <div className="flex flex-col sm:flex-row justify-between items-start gap-4 relative z-10 mb-5">
                   <div>
-                    <h4 className="font-bold mb-1 flex items-center gap-2"><MonitorSmartphone size={18} className="text-blue-600 dark:text-[#00f0ff]"/> Advanced n8n Automations</h4>
-                    <p className="text-xs text-gray-500 max-w-md mb-6">Upload a JSON workflow file provided by your agency to instantly install new automations (e.g., Google Sheets sync, Auto-Emails).</p>
+                    <h4 className="text-sm font-bold mb-1 flex items-center gap-2"><Zap size={16} className="text-blue-500 dark:text-[#00f0ff]"/> n8n Automations</h4>
+                    <p className="text-xs text-gray-400 max-w-md">Upload a JSON workflow to instantly install new automations</p>
                   </div>
-                  <button className="px-4 py-2 bg-blue-600 dark:bg-[#00f0ff] text-white dark:text-[#0c0e12] font-bold rounded-xl text-sm flex items-center gap-2 shadow-lg shadow-blue-500/30">
-                    <Plus size={16}/> Upload JSON Workflow
+                  <button className="px-4 py-2.5 bg-gradient-to-r from-blue-600 to-cyan-600 dark:from-[#00f0ff] dark:to-[#00c8ff] text-white dark:text-[#0c0e12] font-semibold rounded-xl text-xs flex items-center gap-2 hover:shadow-lg hover:shadow-blue-500/20 active:scale-[0.98] transition-all whitespace-nowrap">
+                    <Plus size={14}/> Upload JSON
                   </button>
                 </div>
-
-                <div className="space-y-3 relative z-10">
-                  <div className="p-4 rounded-xl bg-gray-50 dark:bg-[#0c0e12] border border-gray-100 dark:border-[#3b494b]/30 flex items-center justify-between">
+                <div className="space-y-2 relative z-10">
+                  <div className="p-3.5 rounded-xl bg-gray-50 dark:bg-[#0c0e12] border border-gray-100 dark:border-[#2a2c31] flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                      <p className="font-semibold text-sm">Sync Hot Leads to Google Sheets</p>
+                      <div className="w-2 h-2 rounded-full bg-emerald-500 pulse-green"></div>
+                      <p className="text-sm font-medium">Sync Hot Leads to Google Sheets</p>
                     </div>
-                    <span className="text-xs text-gray-500">Active</span>
+                    <span className="text-[10px] text-emerald-500 font-semibold uppercase tracking-wider">Active</span>
                   </div>
-                  <div className="p-4 rounded-xl bg-gray-50 dark:bg-[#0c0e12] border border-gray-100 dark:border-[#3b494b]/30 flex items-center justify-between opacity-60">
+                  <div className="p-3.5 rounded-xl bg-gray-50 dark:bg-[#0c0e12] border border-gray-100 dark:border-[#2a2c31] flex items-center justify-between opacity-50">
                     <div className="flex items-center gap-3">
                       <div className="w-2 h-2 rounded-full bg-gray-400"></div>
-                      <p className="font-semibold text-sm">Send Email Notification on New Lead</p>
+                      <p className="text-sm font-medium">Email Notification on New Lead</p>
                     </div>
-                    <span className="text-xs text-gray-500">Paused</span>
+                    <span className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">Paused</span>
                   </div>
                 </div>
               </div>
-
             </div>
           )}
+
+          {/* ─── SETTINGS ─── */}
           {activeTab === 'settings' && (
-            <div className="space-y-8">
+            <div className="animate-fade-in space-y-5">
               <div>
-                <h3 className="text-xl font-bold text-gray-900 dark:text-[#e2e2e8]">Portal & Bot Settings</h3>
-                <p className="text-sm text-gray-500 dark:text-[#b9cacb]">Manage your AI Assistant profile and dashboard preferences.</p>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white">Settings</h3>
+                <p className="text-sm text-gray-500 dark:text-[#6b7280]">Manage your AI assistant and preferences</p>
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {/* AI Profile Settings */}
-                <div className="bg-white dark:bg-[#1e2024] p-6 rounded-2xl border border-gray-100 dark:border-transparent shadow-sm">
-                  <h4 className="font-bold mb-6 flex items-center gap-2"><Bot size={18} className="text-blue-500"/> AI Agent Profile (WhatsApp)</h4>
-                  
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                <div className="bg-white dark:bg-[#1a1c22] p-6 rounded-2xl border border-gray-200/60 dark:border-[#2a2c31]">
+                  <h4 className="text-sm font-bold mb-5 flex items-center gap-2"><Bot size={16} className="text-blue-500"/> AI Agent Profile</h4>
                   <div className="space-y-4">
-                    <div className="flex items-center gap-4 mb-6">
-                      <div className="w-16 h-16 rounded-full bg-blue-100 dark:bg-[#0c0e12] flex items-center justify-center text-blue-600 dark:text-[#00f0ff] border-2 border-dashed border-blue-300 cursor-pointer hover:bg-blue-200 transition-colors">
-                        <Plus size={24} />
-                      </div>
+                    <div className="flex items-center gap-4 mb-4">
+                      <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-400 to-cyan-400 flex items-center justify-center text-white text-lg font-bold cursor-pointer hover:shadow-lg hover:shadow-blue-500/20 transition-all">A</div>
                       <div>
-                        <p className="font-semibold text-sm">Profile Picture</p>
-                        <p className="text-xs text-gray-500">Upload a professional avatar</p>
+                        <p className="text-sm font-semibold">Profile Picture</p>
+                        <p className="text-xs text-gray-400">Click to upload</p>
                       </div>
                     </div>
-
                     <div>
-                      <label className="block text-sm font-semibold mb-2">Agent Name</label>
-                      <input type="text" defaultValue="Aura" className="w-full px-4 py-2 bg-gray-50 dark:bg-[#0c0e12] border border-gray-200 dark:border-[#3b494b]/30 rounded-xl outline-none focus:border-blue-500" />
+                      <label className="block text-xs font-semibold text-gray-500 dark:text-[#6b7280] uppercase tracking-wider mb-1.5">Agent Name</label>
+                      <input type="text" defaultValue="Aura" className="w-full px-4 py-2.5 bg-gray-50 dark:bg-[#0c0e12] border border-gray-200 dark:border-[#2a2c31] rounded-xl outline-none focus:border-blue-400 text-sm" />
                     </div>
-                    
                     <div>
-                      <label className="block text-sm font-semibold mb-2">WhatsApp Business Bio</label>
-                      <textarea defaultValue="Hi, I am Aura, your 24/7 AI Real Estate Assistant. Ask me anything about Dubai properties!" className="w-full h-24 px-4 py-2 bg-gray-50 dark:bg-[#0c0e12] border border-gray-200 dark:border-[#3b494b]/30 rounded-xl outline-none focus:border-blue-500 resize-none"></textarea>
+                      <label className="block text-xs font-semibold text-gray-500 dark:text-[#6b7280] uppercase tracking-wider mb-1.5">Bio</label>
+                      <textarea defaultValue="Hi, I am Aura, your 24/7 AI Real Estate Assistant. Ask me anything about Dubai properties!" className="w-full h-20 px-4 py-2.5 bg-gray-50 dark:bg-[#0c0e12] border border-gray-200 dark:border-[#2a2c31] rounded-xl outline-none focus:border-blue-400 resize-none text-sm"></textarea>
                     </div>
-
-                    <button className="px-4 py-2 bg-blue-600 dark:bg-[#00f0ff] text-white dark:text-[#0c0e12] font-bold rounded-xl text-sm hover:bg-blue-700 transition-colors">
-                      Sync to Meta WhatsApp
-                    </button>
-                    <p className="text-[10px] text-gray-400 mt-2">*Note: Syncing requires Meta Business API approval.</p>
+                    <button className="px-4 py-2.5 bg-gradient-to-r from-blue-600 to-cyan-600 dark:from-[#00f0ff] dark:to-[#00c8ff] text-white dark:text-[#0c0e12] font-semibold rounded-xl text-xs hover:shadow-lg hover:shadow-blue-500/20 active:scale-[0.98] transition-all">Sync to WhatsApp</button>
                   </div>
                 </div>
 
-                {/* Dashboard Preferences */}
-                <div className="bg-white dark:bg-[#1e2024] p-6 rounded-2xl border border-gray-100 dark:border-transparent shadow-sm h-fit">
-                  <h4 className="font-bold mb-6 flex items-center gap-2"><User size={18} className="text-orange-500"/> Admin Preferences</h4>
+                <div className="bg-white dark:bg-[#1a1c22] p-6 rounded-2xl border border-gray-200/60 dark:border-[#2a2c31] h-fit space-y-5">
+                  <h4 className="text-sm font-bold flex items-center gap-2"><Settings size={16} className="text-gray-500"/> Preferences</h4>
                   
-                  <div className="space-y-6">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-semibold text-sm">Dark Mode</p>
-                        <p className="text-xs text-gray-500">Toggle dashboard theme</p>
-                      </div>
-                      <button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} className="w-12 h-6 bg-blue-600 rounded-full relative">
-                        <div className={`w-4 h-4 bg-white rounded-full absolute top-1 transition-all ${theme === 'dark' ? 'right-1' : 'left-1'}`}></div>
-                      </button>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-semibold">Dark Mode</p>
+                      <p className="text-xs text-gray-400">Toggle dashboard theme</p>
                     </div>
+                    <button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} className={`w-11 h-6 rounded-full relative transition-colors ${theme === 'dark' ? 'bg-blue-500' : 'bg-gray-300'}`}>
+                      <div className={`w-4 h-4 bg-white rounded-full absolute top-1 transition-all shadow-sm ${theme === 'dark' ? 'right-1' : 'left-1'}`}></div>
+                    </button>
+                  </div>
 
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-semibold text-sm">Email Notifications</p>
-                        <p className="text-xs text-gray-500">Get alerts for 'Hot' leads</p>
-                      </div>
-                      <button className="w-12 h-6 bg-green-500 rounded-full relative">
-                        <div className="w-4 h-4 bg-white rounded-full absolute top-1 right-1"></div>
-                      </button>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-semibold">Email Notifications</p>
+                      <p className="text-xs text-gray-400">Alerts for Hot leads</p>
                     </div>
+                    <button className="w-11 h-6 bg-emerald-500 rounded-full relative">
+                      <div className="w-4 h-4 bg-white rounded-full absolute top-1 right-1 shadow-sm"></div>
+                    </button>
+                  </div>
 
-                    <div className="pt-6 border-t border-gray-100 dark:border-[#3b494b]/30">
-                      <button onClick={() => setIsAuthenticated(false)} className="w-full px-4 py-2 bg-red-100 dark:bg-red-500/10 text-red-600 dark:text-red-400 font-bold rounded-xl text-sm hover:bg-red-200 transition-colors">
-                        Logout
-                      </button>
-                    </div>
+                  <div className="pt-4 border-t border-gray-100 dark:border-[#2a2c31]">
+                    <button onClick={() => setIsAuthenticated(false)} className="w-full px-4 py-2.5 bg-red-50 dark:bg-red-500/8 text-red-500 font-semibold rounded-xl text-sm hover:bg-red-100 dark:hover:bg-red-500/15 transition-colors">
+                      Logout
+                    </button>
                   </div>
                 </div>
               </div>
             </div>
           )}
+
         </main>
       </div>
     </div>
