@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { 
   BarChart3, Users, MessageSquare, RefreshCcw, 
-  MonitorSmartphone, Building, Sun, Moon, Bell, User, Search, Home, Activity, CheckCircle, TrendingUp
+  MonitorSmartphone, Building, Sun, Moon, Bell, User, Search, Home, Activity, CheckCircle, TrendingUp, Plus, Trash2, MapPin, DollarSign
 } from 'lucide-react';
 
 export default function Dashboard() {
@@ -15,6 +15,9 @@ export default function Dashboard() {
   // Real Data states
   const [leads, setLeads] = useState<any[]>([]);
   const [stats, setStats] = useState({ total: 0, active: 0, recovered: 0 });
+  const [inventory, setInventory] = useState<any[]>([]);
+  const [isAddingProp, setIsAddingProp] = useState(false);
+  const [newProp, setNewProp] = useState({title: '', location: '', price: '', description: ''});
 
   useEffect(() => {
     if (theme === 'dark') document.documentElement.classList.add('dark');
@@ -25,7 +28,7 @@ export default function Dashboard() {
     setDateStr(new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }));
     fetchDashboardData();
 
-    // Subscribe to realtime updates from Supabase
+    // Subscribe to realtime updates
     const channel = supabase.channel('dashboard_updates')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'leads' }, payload => {
         fetchDashboardData();
@@ -45,6 +48,22 @@ export default function Dashboard() {
         recovered: leadsData.filter((l:any) => l.status === 'Recovered').length
       });
     }
+
+    const { data: invData } = await supabase.from('inventory').select('*').order('created_at', { ascending: false });
+    if (invData) setInventory(invData);
+  };
+
+  const handleAddProperty = async () => {
+    if (!newProp.title || !newProp.price) return;
+    await supabase.from('inventory').insert([newProp]);
+    setIsAddingProp(false);
+    setNewProp({title: '', location: '', price: '', description: ''});
+        fetchDashboardData();
+  };
+
+  const handleDeleteProperty = async (id: string) => {
+    await supabase.from('inventory').delete().eq('id', id);
+    fetchDashboardData();
   };
 
   return (
@@ -91,19 +110,6 @@ export default function Dashboard() {
             </li>
           ))}
         </ul>
-        
-        <div className="px-6 mt-8">
-          <div className="bg-gray-100 dark:bg-[#3b494b]/10 rounded-2xl p-4 border border-gray-200 dark:border-[#3b494b]/30">
-            <p className="text-xs text-gray-500 dark:text-[#b9cacb] mb-2 uppercase font-bold tracking-wider">AI Engine Status</p>
-            <div className="flex items-center gap-2 text-sm text-green-600 dark:text-[#00f0ff] font-medium">
-              <span className="relative flex h-2.5 w-2.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 dark:bg-[#00f0ff] opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500 dark:bg-[#00f0ff]"></span>
-              </span>
-              Gemini Pro Active
-            </div>
-          </div>
-        </div>
       </nav>
 
       {/* Main Content Area */}
@@ -153,10 +159,7 @@ export default function Dashboard() {
                   <p className="text-gray-500 dark:text-[#b9cacb] text-sm md:text-base">Here's what your AI has been doing today, <span className="text-[#00f0ff] font-medium">{dateStr}</span>.</p>
                 </div>
                 <div className="flex gap-3">
-                  <button className="px-5 py-2.5 bg-gray-100 dark:bg-[#1e2024] border border-gray-200 dark:border-[#3b494b]/30 text-gray-700 dark:text-[#e2e2e8] rounded-xl text-sm font-semibold hover:bg-gray-200 dark:hover:bg-[#2a2c31] transition-all shadow-sm">
-                    View Reports
-                  </button>
-                  <button className="px-5 py-2.5 bg-blue-600 dark:bg-[#00f0ff] text-white dark:text-[#0c0e12] rounded-xl text-sm font-bold hover:bg-blue-700 dark:hover:bg-[#00d0dd] transition-all shadow-sm dark:shadow-[0_0_15px_rgba(0,240,255,0.4)] flex items-center gap-2">
+                  <button className="px-5 py-2.5 bg-blue-600 dark:bg-[#00f0ff] text-white dark:text-[#0c0e12] rounded-xl text-sm font-bold flex items-center gap-2">
                     <TrendingUp size={16} /> Campaign
                   </button>
                 </div>
@@ -165,14 +168,11 @@ export default function Dashboard() {
               {/* Stats Grid */}
               <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {[
-                  { label: 'Total Leads Handled', value: stats.total.toString(), desc: '+12% from yesterday', icon: <Users size={20} className="text-blue-500 dark:text-[#00f0ff]"/> },
-                  { label: 'Active Conversations', value: stats.active.toString(), desc: 'Currently talking to AI', icon: <MessageSquare size={20} className="text-orange-500 dark:text-[#fdd55a]"/> },
-                  { label: 'Dead Leads Recovered', value: stats.recovered.toString(), desc: 'Re-engaged this week', icon: <RefreshCcw size={20} className="text-green-500 dark:text-[#00ff88]"/> }
+                  { label: 'Total Leads Handled', value: stats.total.toString(), icon: <Users size={20} className="text-blue-500 dark:text-[#00f0ff]"/> },
+                  { label: 'Active Conversations', value: stats.active.toString(), icon: <MessageSquare size={20} className="text-orange-500 dark:text-[#fdd55a]"/> },
+                  { label: 'Dead Leads Recovered', value: stats.recovered.toString(), icon: <RefreshCcw size={20} className="text-green-500 dark:text-[#00ff88]"/> }
                 ].map((stat, i) => (
                   <div key={i} className={`bg-white dark:bg-[#1e2024] border border-gray-100 dark:border-transparent ${i===1?'dark:border-[#fdd55a]/20 border-orange-200':'dark:border-[#3b494b]/10'} rounded-xl p-6 relative overflow-hidden group shadow-sm dark:shadow-none`}>
-                    <div className="absolute top-0 right-0 p-6 opacity-10 dark:opacity-20 transform translate-x-4 -translate-y-4 group-hover:scale-110 transition-transform duration-500">
-                      {stat.icon}
-                    </div>
                     <div className="flex items-center gap-3 mb-4">
                       <div className="w-8 h-8 rounded-lg bg-gray-50 dark:bg-[#0c0e12] border border-gray-100 dark:border-[#3b494b]/30 flex items-center justify-center">
                         {stat.icon}
@@ -180,7 +180,6 @@ export default function Dashboard() {
                       <h3 className="text-gray-500 dark:text-[#b9cacb] font-semibold text-sm uppercase tracking-wider">{stat.label}</h3>
                     </div>
                     <p className="text-4xl font-black text-gray-900 dark:text-white mb-2 tracking-tight">{stat.value}</p>
-                    <p className="text-xs font-medium text-gray-500 dark:text-[#b9cacb]">{stat.desc}</p>
                   </div>
                 ))}
               </section>
@@ -189,18 +188,17 @@ export default function Dashboard() {
               <section className="bg-white dark:bg-[#1e2024] rounded-2xl border border-gray-100 dark:border-transparent p-6 shadow-sm">
                 <div className="flex items-center justify-between mb-6">
                   <h3 className="text-xl font-bold text-gray-900 dark:text-[#e2e2e8]">Recent AI Conversations</h3>
-                  <button className="text-sm font-semibold text-blue-600 dark:text-[#00f0ff] hover:underline">View All</button>
                 </div>
                 
                 <div className="space-y-4">
                   {leads.slice(0,5).map((lead: any, i) => (
-                    <div key={i} className="flex items-center justify-between p-4 rounded-xl bg-gray-50 dark:bg-[#0c0e12] border border-gray-100 dark:border-[#3b494b]/20 hover:border-gray-300 dark:hover:border-[#00f0ff]/40 transition-colors group cursor-pointer">
+                    <div key={i} className="flex items-center justify-between p-4 rounded-xl bg-gray-50 dark:bg-[#0c0e12] border border-gray-100 dark:border-[#3b494b]/20 hover:border-gray-300 transition-colors group cursor-pointer">
                       <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-full bg-blue-100 dark:bg-[#1e2024] border border-gray-200 dark:border-[#3b494b]/30 flex items-center justify-center text-blue-600 dark:text-[#00f0ff] font-bold">
+                        <div className="w-12 h-12 rounded-full bg-blue-100 dark:bg-[#1e2024] flex items-center justify-center text-blue-600 dark:text-[#00f0ff] font-bold">
                           {lead.name ? lead.name.substring(0,2).toUpperCase() : 'NA'}
                         </div>
                         <div>
-                          <p className="font-bold text-gray-900 dark:text-white text-base group-hover:text-blue-600 dark:group-hover:text-[#00f0ff] transition-colors">{lead.name || 'Unknown User'}</p>
+                          <p className="font-bold text-gray-900 dark:text-white text-base">{lead.name || 'Unknown User'}</p>
                           <p className="text-sm text-gray-500 dark:text-[#b9cacb]">{lead.phone}</p>
                         </div>
                       </div>
@@ -209,14 +207,13 @@ export default function Dashboard() {
                           {lead.status}
                         </span>
                         <div className="text-right hidden sm:block">
-                          <p className="text-sm text-gray-900 dark:text-white font-medium">Last active</p>
                           <p className="text-xs text-gray-500 dark:text-[#b9cacb]">{new Date(lead.last_message_at || lead.created_at).toLocaleTimeString()}</p>
                         </div>
                       </div>
                     </div>
                   ))}
                   {leads.length === 0 && (
-                    <p className="text-center text-gray-500 dark:text-[#b9cacb] py-8">No conversations yet. AI is waiting for messages!</p>
+                    <p className="text-center text-gray-500 dark:text-[#b9cacb] py-8">No conversations yet.</p>
                   )}
                 </div>
               </section>
@@ -251,7 +248,7 @@ export default function Dashboard() {
                     ))}
                     {leads.length === 0 && (
                       <tr>
-                        <td colSpan={4} className="py-8 text-center text-gray-500 dark:text-[#b9cacb]">No leads found. Send a WhatsApp message to start!</td>
+                        <td colSpan={4} className="py-8 text-center text-gray-500 dark:text-[#b9cacb]">No leads found.</td>
                       </tr>
                     )}
                   </tbody>
@@ -260,7 +257,82 @@ export default function Dashboard() {
             </div>
           )}
 
-          {['inventory', 'workflows', 'chats', 'billing', 'settings'].includes(activeTab) && (
+          {activeTab === 'inventory' && (
+            <div className="space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-[#1e2024] rounded-2xl border border-gray-100 dark:border-transparent p-6 shadow-sm">
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-[#e2e2e8]">Property Inventory</h3>
+                  <p className="text-sm text-gray-500 dark:text-[#b9cacb]">AI will pitch these properties to WhatsApp leads.</p>
+                </div>
+                <button 
+                  onClick={() => setIsAddingProp(!isAddingProp)}
+                  className="px-4 py-2 bg-blue-600 dark:bg-[#00f0ff] text-white dark:text-[#0c0e12] rounded-xl text-sm font-bold flex items-center gap-2 w-fit"
+                >
+                  <Plus size={16} /> Add Property
+                </button>
+              </div>
+
+              {isAddingProp && (
+                <div className="bg-gray-50 dark:bg-[#1e2024] rounded-2xl border border-blue-200 dark:border-[#00f0ff]/30 p-6 shadow-sm animate-in slide-in-from-top-4">
+                  <h4 className="font-bold mb-4">Add New Property</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <input 
+                      type="text" placeholder="Title (e.g. 3BHK Luxury Villa)" 
+                      className="px-4 py-2 bg-white dark:bg-[#0c0e12] border border-gray-200 dark:border-[#3b494b]/30 rounded-xl outline-none focus:border-blue-500"
+                      value={newProp.title} onChange={e => setNewProp({...newProp, title: e.target.value})}
+                    />
+                    <input 
+                      type="text" placeholder="Location (e.g. Palm Jumeirah)" 
+                      className="px-4 py-2 bg-white dark:bg-[#0c0e12] border border-gray-200 dark:border-[#3b494b]/30 rounded-xl outline-none focus:border-blue-500"
+                      value={newProp.location} onChange={e => setNewProp({...newProp, location: e.target.value})}
+                    />
+                    <input 
+                      type="text" placeholder="Price (e.g. 4.5M AED)" 
+                      className="px-4 py-2 bg-white dark:bg-[#0c0e12] border border-gray-200 dark:border-[#3b494b]/30 rounded-xl outline-none focus:border-blue-500"
+                      value={newProp.price} onChange={e => setNewProp({...newProp, price: e.target.value})}
+                    />
+                    <input 
+                      type="text" placeholder="Description/Highlights" 
+                      className="px-4 py-2 bg-white dark:bg-[#0c0e12] border border-gray-200 dark:border-[#3b494b]/30 rounded-xl outline-none focus:border-blue-500"
+                      value={newProp.description} onChange={e => setNewProp({...newProp, description: e.target.value})}
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={handleAddProperty} className="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-bold">Save to Database</button>
+                    <button onClick={() => setIsAddingProp(false)} className="px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded-xl text-sm font-bold">Cancel</button>
+                  </div>
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {inventory.map((prop: any) => (
+                  <div key={prop.id} className="bg-white dark:bg-[#1e2024] rounded-2xl border border-gray-100 dark:border-transparent p-5 shadow-sm hover:shadow-md transition-shadow relative group">
+                    <button onClick={() => handleDeleteProperty(prop.id)} className="absolute top-4 right-4 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Trash2 size={18} />
+                    </button>
+                    <div className="w-12 h-12 bg-blue-50 dark:bg-[#0c0e12] rounded-xl flex items-center justify-center mb-4 text-blue-600 dark:text-[#00f0ff]">
+                      <Building size={24} />
+                    </div>
+                    <h4 className="font-bold text-lg mb-1">{prop.title}</h4>
+                    <div className="flex items-center gap-1 text-sm text-gray-500 dark:text-[#b9cacb] mb-1">
+                      <MapPin size={14} /> {prop.location}
+                    </div>
+                    <div className="flex items-center gap-1 text-sm font-bold text-green-600 dark:text-[#00ff88] mb-3">
+                      <DollarSign size={14} /> {prop.price}
+                    </div>
+                    <p className="text-sm text-gray-600 dark:text-[#e2e2e8]/70 line-clamp-2">{prop.description}</p>
+                  </div>
+                ))}
+                {inventory.length === 0 && !isAddingProp && (
+                  <div className="col-span-full text-center py-12 text-gray-500 border border-dashed rounded-2xl border-gray-300 dark:border-[#3b494b]/30">
+                    No properties added yet. Click "Add Property" to build your inventory.
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {['recovery', 'workflows', 'chats', 'analytics'].includes(activeTab) && (
             <div className="flex flex-col items-center justify-center py-20 text-center animate-in fade-in duration-500">
                <div className="w-16 h-16 bg-gray-100 dark:bg-[#282a2e] rounded-full flex items-center justify-center text-gray-400 dark:text-[#b9cacb] mb-4">
                   <Activity size={32} />
