@@ -17,7 +17,7 @@ export default function Dashboard() {
   const [inventory, setInventory] = useState<any[]>([]);
   
   const [isAddingProp, setIsAddingProp] = useState(false);
-  const [newProp, setNewProp] = useState({title: '', location: '', price: '', description: ''});
+  const [newProp, setNewProp] = useState({title: '', location: '', price: '', description: '', image: '', brochure: ''});
 
   const [selectedLeadPhone, setSelectedLeadPhone] = useState<string | null>(null);
   const [leadChatHistory, setLeadChatHistory] = useState<any[]>([]);
@@ -93,7 +93,7 @@ export default function Dashboard() {
     if (!newProp.title || !newProp.price) return;
     await supabase.from('inventory').insert([newProp]);
     setIsAddingProp(false);
-    setNewProp({title: '', location: '', price: '', description: ''});
+    setNewProp({title: '', location: '', price: '', description: '', image: '', brochure: ''});
     fetchDashboardData();
   };
 
@@ -412,6 +412,21 @@ export default function Dashboard() {
                     <input type="text" placeholder="Location (e.g. Palm Jumeirah)" className="px-4 py-2.5 bg-gray-50 dark:bg-[#0c0e12] border border-gray-200 dark:border-[#2a2c31] rounded-xl outline-none focus:border-blue-400 text-sm transition-colors" value={newProp.location} onChange={e => setNewProp({...newProp, location: e.target.value})} />
                     <input type="text" placeholder="Price (e.g. 4.5M AED)" className="px-4 py-2.5 bg-gray-50 dark:bg-[#0c0e12] border border-gray-200 dark:border-[#2a2c31] rounded-xl outline-none focus:border-blue-400 text-sm transition-colors" value={newProp.price} onChange={e => setNewProp({...newProp, price: e.target.value})} />
                     <input type="text" placeholder="Description" className="px-4 py-2.5 bg-gray-50 dark:bg-[#0c0e12] border border-gray-200 dark:border-[#2a2c31] rounded-xl outline-none focus:border-blue-400 text-sm transition-colors" value={newProp.description} onChange={e => setNewProp({...newProp, description: e.target.value})} />
+                    
+                    <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-3 mt-1">
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+                          <span className="text-gray-400 text-xs">📷 Image URL</span>
+                        </div>
+                        <input type="text" placeholder="Paste image link here..." className="w-full pl-24 pr-4 py-2.5 bg-gray-50 dark:bg-[#0c0e12] border border-gray-200 dark:border-[#2a2c31] rounded-xl outline-none focus:border-blue-400 text-sm transition-colors" value={newProp.image} onChange={e => setNewProp({...newProp, image: e.target.value})} />
+                      </div>
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+                          <span className="text-gray-400 text-xs">📄 PDF Brochure</span>
+                        </div>
+                        <input type="text" placeholder="Paste Google Drive/PDF link..." className="w-full pl-28 pr-4 py-2.5 bg-gray-50 dark:bg-[#0c0e12] border border-gray-200 dark:border-[#2a2c31] rounded-xl outline-none focus:border-blue-400 text-sm transition-colors" value={newProp.brochure} onChange={e => setNewProp({...newProp, brochure: e.target.value})} />
+                      </div>
+                    </div>
                   </div>
                   <div className="flex gap-2">
                     <button onClick={handleAddProperty} className="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 transition-colors">Save</button>
@@ -422,13 +437,20 @@ export default function Dashboard() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {inventory.map((prop: any) => (
-                  <div key={prop.id} className="bg-white dark:bg-[#1a1c22] rounded-2xl border border-gray-200/60 dark:border-[#2a2c31] p-5 card-hover relative group">
-                    <button onClick={() => handleDeleteProperty(prop.id)} className="absolute top-4 right-4 text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"><Trash2 size={16} /></button>
-                    <div className="w-10 h-10 bg-blue-50 dark:bg-blue-500/10 rounded-xl flex items-center justify-center mb-3"><Building size={20} className="text-blue-500" /></div>
+                  <div key={prop.id} className="bg-white dark:bg-[#1a1c22] rounded-2xl border border-gray-200/60 dark:border-[#2a2c31] p-4 card-hover relative group flex flex-col">
+                    <button onClick={() => handleDeleteProperty(prop.id)} className="absolute top-6 right-6 text-gray-700 bg-white/80 backdrop-blur rounded-full p-1.5 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all z-10 shadow-sm"><Trash2 size={14} /></button>
+                    {prop.image ? (
+                      <div className="w-full h-36 rounded-xl mb-3 bg-gray-100 dark:bg-gray-800 bg-cover bg-center border border-gray-100 dark:border-[#2a2c31]" style={{ backgroundImage: `url(${prop.image})` }}></div>
+                    ) : (
+                      <div className="w-10 h-10 bg-blue-50 dark:bg-blue-500/10 rounded-xl flex items-center justify-center mb-3"><Building size={20} className="text-blue-500" /></div>
+                    )}
                     <h4 className="font-bold text-sm mb-1">{prop.title}</h4>
-                    <div className="flex items-center gap-1 text-xs text-gray-400 mb-0.5"><MapPin size={12} /> {prop.location}</div>
-                    <div className="flex items-center gap-1 text-sm font-bold text-emerald-600 dark:text-[#00ff88] mb-2"><DollarSign size={14} /> {prop.price}</div>
-                    <p className="text-xs text-gray-500 dark:text-[#8b8f96] line-clamp-2">{prop.description}</p>
+                    <div className="flex items-center gap-1 text-[11px] text-gray-400 mb-2"><MapPin size={12} /> {prop.location}</div>
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-0.5 text-sm font-bold text-emerald-600 dark:text-[#00ff88]"><DollarSign size={14} /> {prop.price}</div>
+                      {prop.brochure && <a href={prop.brochure} target="_blank" rel="noreferrer" className="text-[9px] bg-blue-50 hover:bg-blue-100 text-blue-600 dark:bg-blue-500/10 dark:hover:bg-blue-500/20 dark:text-[#00f0ff] px-2 py-1 rounded font-bold uppercase tracking-wider border border-blue-100 dark:border-blue-500/30 transition-colors flex items-center gap-1">📄 PDF</a>}
+                    </div>
+                    <p className="text-xs text-gray-500 dark:text-[#8b8f96] line-clamp-2 mt-auto">{prop.description}</p>
                   </div>
                 ))}
                 {inventory.length === 0 && !isAddingProp && (
@@ -571,20 +593,32 @@ export default function Dashboard() {
                   <div className="lg:col-span-3 space-y-4">
                     <div>
                       <label className="block text-xs font-semibold text-gray-500 dark:text-[#6b7280] uppercase tracking-wider mb-2">Target Audience</label>
-                      <div className="flex gap-2">
-                        {['New', 'Warm', 'Cold'].map(status => (
+                      <div className="flex flex-wrap gap-2">
+                        {['New', 'Warm', 'Cold', 'Custom CSV'].map(status => (
                           <button key={status} onClick={() => setCampaignStatus(status)}
                             className={`px-4 py-2 rounded-xl text-xs font-semibold border transition-all ${campaignStatus === status ? 'border-blue-500 dark:border-[#00f0ff] bg-blue-50 dark:bg-[#00f0ff]/8 text-blue-600 dark:text-[#00f0ff]' : 'border-gray-200 dark:border-[#2a2c31] text-gray-400 hover:bg-gray-50 dark:hover:bg-[#1e2024]'}`}>
-                            {status} Leads
+                            {status === 'Custom CSV' ? 'Import CSV File' : `${status} Leads`}
                           </button>
                         ))}
                       </div>
+
+                      {campaignStatus === 'Custom CSV' && (
+                        <div className="mt-4 p-4 border-2 border-dashed border-gray-200 dark:border-[#2a2c31] rounded-xl flex items-center justify-center bg-gray-50 dark:bg-[#1e2024]/50 cursor-pointer hover:border-blue-400 transition-colors animate-fade-in">
+                          <div className="text-center">
+                            <div className="w-10 h-10 bg-white dark:bg-[#0c0e12] rounded-full flex items-center justify-center mx-auto mb-2 text-blue-500 shadow-sm border border-gray-100 dark:border-[#2a2c31]">
+                              <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+                            </div>
+                            <p className="text-sm font-semibold">Click to upload CSV</p>
+                            <p className="text-[10px] text-gray-400 mt-0.5">Column A should contain phone numbers</p>
+                          </div>
+                        </div>
+                      )}
                     </div>
                     <div>
                       <label className="block text-xs font-semibold text-gray-500 dark:text-[#6b7280] uppercase tracking-wider mb-2">Message</label>
                       <textarea value={campaignMsg} onChange={e => setCampaignMsg(e.target.value)} placeholder="Hi! We have a new luxury property launch matching your interests..." className="w-full h-28 px-4 py-3 bg-gray-50 dark:bg-[#0c0e12] border border-gray-200 dark:border-[#2a2c31] rounded-xl outline-none focus:border-blue-400 resize-none text-sm transition-colors"></textarea>
                     </div>
-                    <button onClick={handleSendCampaign} disabled={isSendingCampaign || !campaignMsg} className="w-full py-3 bg-gradient-to-r from-blue-600 to-cyan-600 dark:from-[#00f0ff] dark:to-[#00c8ff] text-white dark:text-[#0c0e12] rounded-xl font-semibold hover:shadow-lg hover:shadow-blue-500/20 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 active:scale-[0.98] transition-all">
+                    <button onClick={handleSendCampaign} disabled={isSendingCampaign || (!campaignMsg && campaignStatus !== 'Custom CSV')} className="w-full py-3 bg-gradient-to-r from-blue-600 to-cyan-600 dark:from-[#00f0ff] dark:to-[#00c8ff] text-white dark:text-[#0c0e12] rounded-xl font-semibold hover:shadow-lg hover:shadow-blue-500/20 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 active:scale-[0.98] transition-all">
                       {isSendingCampaign ? 'Sending...' : <><RefreshCcw size={16} /> Launch Broadcast</>}
                     </button>
                   </div>
@@ -593,8 +627,17 @@ export default function Dashboard() {
                     <div className="w-14 h-14 bg-blue-50 dark:bg-blue-500/10 rounded-2xl flex items-center justify-center mb-3">
                       <Users size={28} className="text-blue-500" />
                     </div>
-                    <p className="text-2xl font-bold mb-1">{leads.filter(l => l.status === campaignStatus).length}</p>
-                    <p className="text-xs text-gray-400">leads will receive this message</p>
+                    {campaignStatus === 'Custom CSV' ? (
+                      <>
+                        <p className="text-lg font-bold mb-1 text-gray-400">CSV Pending</p>
+                        <p className="text-xs text-gray-500">Upload a file to see lead count</p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-3xl font-bold mb-1">{leads.filter(l => l.status === campaignStatus).length}</p>
+                        <p className="text-xs text-gray-400">leads will receive this message</p>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
