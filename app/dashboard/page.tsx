@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { 
   BarChart3, Users, MessageSquare, RefreshCcw, 
-  MonitorSmartphone, Building, Sun, Moon, Bell, User, Search, Home, Activity, CheckCircle, TrendingUp, Plus, Trash2, MapPin, DollarSign
+  MonitorSmartphone, Building, Sun, Moon, Bell, User, Search, Home, Activity, CheckCircle, TrendingUp, Plus, Trash2, MapPin, DollarSign, Bot, ArrowRight
 } from 'lucide-react';
 
 export default function Dashboard() {
@@ -16,8 +16,14 @@ export default function Dashboard() {
   const [leads, setLeads] = useState<any[]>([]);
   const [stats, setStats] = useState({ total: 0, active: 0, recovered: 0 });
   const [inventory, setInventory] = useState<any[]>([]);
+  
+  // Inventory Form states
   const [isAddingProp, setIsAddingProp] = useState(false);
   const [newProp, setNewProp] = useState({title: '', location: '', price: '', description: ''});
+
+  // AI Chats states
+  const [selectedLeadPhone, setSelectedLeadPhone] = useState<string | null>(null);
+  const [leadChatHistory, setLeadChatHistory] = useState<any[]>([]);
 
   useEffect(() => {
     if (theme === 'dark') document.documentElement.classList.add('dark');
@@ -28,15 +34,32 @@ export default function Dashboard() {
     setDateStr(new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }));
     fetchDashboardData();
 
-    // Subscribe to realtime updates
-    const channel = supabase.channel('dashboard_updates')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'leads' }, payload => {
+    // Subscribe to realtime updates for leads
+    const leadsChannel = supabase.channel('leads_updates')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'leads' }, () => {
         fetchDashboardData();
-      })
-      .subscribe();
+      }).subscribe();
 
-    return () => { supabase.removeChannel(channel); };
-  }, []);
+    // Subscribe to realtime updates for chat_history
+    const chatChannel = supabase.channel('chat_updates')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_history' }, payload => {
+        setLeadChatHistory(prev => {
+          // Only add if it belongs to the currently viewed lead
+          if (payload.new.phone === selectedLeadPhone) {
+            // Check if it already exists to prevent dupes during fast updates
+            if (!prev.find(m => m.id === payload.new.id)) {
+              return [...prev, payload.new];
+            }
+          }
+          return prev;
+        });
+      }).subscribe();
+
+    return () => { 
+      supabase.removeChannel(leadsChannel); 
+      supabase.removeChannel(chatChannel);
+    };
+  }, [selectedLeadPhone]);
 
   const fetchDashboardData = async () => {
     const { data: leadsData } = await supabase.from('leads').select('*').order('last_message_at', { ascending: false });
@@ -53,12 +76,18 @@ export default function Dashboard() {
     if (invData) setInventory(invData);
   };
 
+  const fetchLeadChat = async (phone: string) => {
+    setSelectedLeadPhone(phone);
+    const { data } = await supabase.from('chat_history').select('*').eq('phone', phone).order('created_at', { ascending: true });
+    if (data) setLeadChatHistory(data);
+  };
+
   const handleAddProperty = async () => {
     if (!newProp.title || !newProp.price) return;
     await supabase.from('inventory').insert([newProp]);
     setIsAddingProp(false);
     setNewProp({title: '', location: '', price: '', description: ''});
-        fetchDashboardData();
+    fetchDashboardData();
   };
 
   const handleDeleteProperty = async (id: string) => {
@@ -89,10 +118,10 @@ export default function Dashboard() {
           {[
             { id: 'home', icon: <Home size={20}/>, label: 'Home' },
             { id: 'leads', icon: <Users size={20}/>, label: 'Live Leads' },
-            { id: 'recovery', icon: <RefreshCcw size={20}/>, label: 'Dead Lead Recovery' },
-            { id: 'inventory', icon: <Building size={20}/>, label: 'Inventory' },
-            { id: 'workflows', icon: <MonitorSmartphone size={20}/>, label: 'Automations' },
             { id: 'chats', icon: <MessageSquare size={20}/>, label: 'AI Chats' },
+            { id: 'inventory', icon: <Building size={20}/>, label: 'Inventory' },
+            { id: 'recovery', icon: <RefreshCcw size={20}/>, label: 'Dead Lead Recovery' },
+            { id: 'workflows', icon: <MonitorSmartphone size={20}/>, label: 'Automations' },
             { id: 'analytics', icon: <BarChart3 size={20}/>, label: 'AI Intelligence' },
           ].map(tab => (
             <li key={tab.id}>
@@ -148,7 +177,7 @@ export default function Dashboard() {
         </header>
 
         {/* Scrollable Main Area */}
-        <main className="flex-1 overflow-y-auto p-4 md:p-10 space-y-8 scroll-smooth">
+        <main className={`flex-1 overflow-y-auto p-4 md:p-10 scroll-smooth ${activeTab === 'chats' ? 'p-0 md:p-0' : 'space-y-8'}`}>
           
           {activeTab === 'home' && (
             <>
@@ -192,13 +221,13 @@ export default function Dashboard() {
                 
                 <div className="space-y-4">
                   {leads.slice(0,5).map((lead: any, i) => (
-                    <div key={i} className="flex items-center justify-between p-4 rounded-xl bg-gray-50 dark:bg-[#0c0e12] border border-gray-100 dark:border-[#3b494b]/20 hover:border-gray-300 transition-colors group cursor-pointer">
+                    <div key={i} onClick={() => { setActiveTab('chats'); fetchLeadChat(lead.phone); }} className="flex items-center justify-between p-4 rounded-xl bg-gray-50 dark:bg-[#0c0e12] border border-gray-100 dark:border-[#3b494b]/20 hover:border-gray-300 transition-colors group cursor-pointer">
                       <div className="flex items-center gap-4">
                         <div className="w-12 h-12 rounded-full bg-blue-100 dark:bg-[#1e2024] flex items-center justify-center text-blue-600 dark:text-[#00f0ff] font-bold">
                           {lead.name ? lead.name.substring(0,2).toUpperCase() : 'NA'}
                         </div>
                         <div>
-                          <p className="font-bold text-gray-900 dark:text-white text-base">{lead.name || 'Unknown User'}</p>
+                          <p className="font-bold text-gray-900 dark:text-white text-base group-hover:text-blue-600 dark:group-hover:text-[#00f0ff]">{lead.name || 'Unknown User'}</p>
                           <p className="text-sm text-gray-500 dark:text-[#b9cacb]">{lead.phone}</p>
                         </div>
                       </div>
@@ -209,6 +238,7 @@ export default function Dashboard() {
                         <div className="text-right hidden sm:block">
                           <p className="text-xs text-gray-500 dark:text-[#b9cacb]">{new Date(lead.last_message_at || lead.created_at).toLocaleTimeString()}</p>
                         </div>
+                        <ArrowRight size={18} className="text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />
                       </div>
                     </div>
                   ))}
@@ -235,7 +265,7 @@ export default function Dashboard() {
                   </thead>
                   <tbody>
                     {leads.map((lead: any) => (
-                      <tr key={lead.id} className="border-b border-gray-50 dark:border-[#3b494b]/10 hover:bg-gray-50 dark:hover:bg-[#2a2c31] transition-colors">
+                      <tr key={lead.id} onClick={() => { setActiveTab('chats'); fetchLeadChat(lead.phone); }} className="border-b border-gray-50 dark:border-[#3b494b]/10 hover:bg-gray-50 dark:hover:bg-[#2a2c31] transition-colors cursor-pointer">
                         <td className="py-4 px-4 font-medium text-gray-900 dark:text-white">{lead.name || 'Unknown'}</td>
                         <td className="py-4 px-4 text-gray-500 dark:text-[#b9cacb]">{lead.phone}</td>
                         <td className="py-4 px-4">
@@ -332,7 +362,73 @@ export default function Dashboard() {
             </div>
           )}
 
-          {['recovery', 'workflows', 'chats', 'analytics'].includes(activeTab) && (
+          {activeTab === 'chats' && (
+            <div className="flex h-[calc(100vh-90px)] -m-4 md:-m-10 bg-gray-50 dark:bg-[#111318]">
+              {/* Left Pane: Leads List */}
+              <div className="w-[320px] shrink-0 border-r border-gray-200 dark:border-[#3b494b]/20 bg-white dark:bg-[#1e2024] flex flex-col hidden md:flex">
+                <div className="p-4 border-b border-gray-200 dark:border-[#3b494b]/20 font-bold text-lg">
+                  Conversations
+                </div>
+                <div className="flex-1 overflow-y-auto">
+                  {leads.map((lead: any) => (
+                    <div 
+                      key={lead.id} 
+                      onClick={() => fetchLeadChat(lead.phone)}
+                      className={`p-4 border-b border-gray-100 dark:border-[#3b494b]/10 cursor-pointer transition-colors ${selectedLeadPhone === lead.phone ? 'bg-blue-50 dark:bg-[#0c0e12] border-l-4 border-l-blue-600 dark:border-l-[#00f0ff]' : 'hover:bg-gray-50 dark:hover:bg-[#2a2c31] border-l-4 border-l-transparent'}`}
+                    >
+                      <p className="font-bold text-gray-900 dark:text-white">{lead.name || 'Unknown'}</p>
+                      <p className="text-xs text-gray-500 dark:text-[#b9cacb] mb-2">{lead.phone}</p>
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${lead.status === 'Hot' ? 'bg-red-100 text-red-600 dark:bg-red-500/20 dark:text-red-400' : lead.status === 'Warm' ? 'bg-orange-100 text-orange-600 dark:bg-orange-500/20 dark:text-orange-400' : 'bg-blue-100 text-blue-600 dark:bg-blue-500/20 dark:text-[#00f0ff]'}`}>{lead.status}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Right Pane: Chat History */}
+              <div className="flex-1 flex flex-col bg-white dark:bg-[#111318]">
+                {selectedLeadPhone ? (
+                  <>
+                    <div className="p-4 border-b border-gray-200 dark:border-[#3b494b]/20 bg-white dark:bg-[#1e2024] flex items-center justify-between shadow-sm">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-[#0c0e12] flex items-center justify-center text-blue-600 dark:text-[#00f0ff] font-bold">
+                          {leads.find(l => l.phone === selectedLeadPhone)?.name?.substring(0,2).toUpperCase() || 'U'}
+                        </div>
+                        <div>
+                          <p className="font-bold text-gray-900 dark:text-white">{leads.find(l => l.phone === selectedLeadPhone)?.name || 'Unknown'}</p>
+                          <p className="text-xs text-green-500">Active on WhatsApp</p>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-gray-50 dark:bg-[#0c0e12]">
+                      {leadChatHistory.map((chat: any) => (
+                        <div key={chat.id} className={`flex ${chat.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                          <div className={`max-w-[80%] rounded-2xl px-5 py-3 ${chat.role === 'user' ? 'bg-blue-600 dark:bg-[#00f0ff] text-white dark:text-[#0c0e12] rounded-tr-sm' : 'bg-white dark:bg-[#1e2024] border border-gray-200 dark:border-[#3b494b]/30 text-gray-800 dark:text-[#e2e2e8] rounded-tl-sm'}`}>
+                            <div className="flex items-center gap-2 mb-1">
+                              {chat.role === 'ai' && <Bot size={14} className="text-blue-600 dark:text-[#00f0ff]" />}
+                              <span className="text-[10px] font-bold opacity-70 uppercase tracking-wider">{chat.role === 'ai' ? 'Aura (AI)' : 'Lead'}</span>
+                            </div>
+                            <p className="whitespace-pre-wrap text-sm leading-relaxed">{chat.message}</p>
+                            <p className="text-[10px] opacity-60 text-right mt-1">{new Date(chat.created_at).toLocaleTimeString()}</p>
+                          </div>
+                        </div>
+                      ))}
+                      {leadChatHistory.length === 0 && (
+                        <div className="h-full flex items-center justify-center text-gray-500">No chat history available.</div>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex-1 flex flex-col items-center justify-center text-gray-500 dark:text-[#b9cacb]">
+                    <MessageSquare size={48} className="mb-4 opacity-20" />
+                    <p>Select a lead to view their AI conversation history.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {['recovery', 'workflows', 'analytics'].includes(activeTab) && (
             <div className="flex flex-col items-center justify-center py-20 text-center animate-in fade-in duration-500">
                <div className="w-16 h-16 bg-gray-100 dark:bg-[#282a2e] rounded-full flex items-center justify-center text-gray-400 dark:text-[#b9cacb] mb-4">
                   <Activity size={32} />
