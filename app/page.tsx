@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
+import { jsPDF } from 'jspdf';
 import { supabase } from '@/lib/supabase';
 import { 
   BarChart3, Users, MessageSquare, RefreshCcw, 
@@ -18,6 +19,8 @@ export default function Dashboard() {
   
   const [isAddingProp, setIsAddingProp] = useState(false);
   const [newProp, setNewProp] = useState({title: '', location: '', price: '', description: '', image: '', brochure: ''});
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   const [selectedLeadPhone, setSelectedLeadPhone] = useState<string | null>(null);
   const [leadChatHistory, setLeadChatHistory] = useState<any[]>([]);
@@ -91,8 +94,68 @@ export default function Dashboard() {
 
   const handleAddProperty = async () => {
     if (!newProp.title || !newProp.price) return;
-    await supabase.from('inventory').insert([newProp]);
+    setIsUploading(true);
+    let imageUrl = '';
+    
+    if (imageFile) {
+      const fileExt = imageFile.name.split('.').pop();
+      const fileName = `${Math.random()}.${fileExt}`;
+      const { data } = await supabase.storage.from('property_media').upload(fileName, imageFile);
+      if (data) {
+        const { data: publicUrlData } = supabase.storage.from('property_media').getPublicUrl(fileName);
+        imageUrl = publicUrlData.publicUrl;
+      }
+    }
+
+    const doc = new jsPDF();
+    doc.setFillColor(12, 14, 18);
+    doc.rect(0, 0, 210, 40, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(24);
+    doc.text("LUXURY REAL ESTATE", 105, 20, { align: "center" });
+    doc.setFontSize(12);
+    doc.text("Premium Property Brochure", 105, 30, { align: "center" });
+    
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(20);
+    doc.text(newProp.title, 20, 55);
+    
+    doc.setFontSize(12);
+    doc.setTextColor(100, 100, 100);
+    doc.text(`Location: ${newProp.location}`, 20, 65);
+    doc.setTextColor(0, 150, 100);
+    doc.text(`Price: ${newProp.price}`, 20, 75);
+    
+    doc.setTextColor(50, 50, 50);
+    const splitDesc = doc.splitTextToSize(`Description: ${newProp.description}`, 170);
+    doc.text(splitDesc, 20, 90);
+
+    if (imageFile) {
+       const base64Img = await new Promise<string>((resolve) => {
+         const reader = new FileReader();
+         reader.onloadend = () => resolve(reader.result as string);
+         reader.readAsDataURL(imageFile);
+       });
+       const format = imageFile.type.includes('png') ? 'PNG' : 'JPEG';
+       doc.addImage(base64Img, format, 20, 110, 170, 100);
+    }
+
+    const pdfBlob = doc.output('blob');
+    const pdfFileName = `brochure_${Math.random()}.pdf`;
+    const { data: pdfData } = await supabase.storage.from('brochures').upload(pdfFileName, pdfBlob, { contentType: 'application/pdf' });
+    
+    let brochureUrl = '';
+    if (pdfData) {
+      const { data: pdfPublicUrl } = supabase.storage.from('brochures').getPublicUrl(pdfFileName);
+      brochureUrl = pdfPublicUrl.publicUrl;
+    }
+
+    const finalProp = { ...newProp, image: imageUrl, brochure: brochureUrl };
+    await supabase.from('inventory').insert([finalProp]);
+    
     setIsAddingProp(false);
+    setIsUploading(false);
+    setImageFile(null);
     setNewProp({title: '', location: '', price: '', description: '', image: '', brochure: ''});
     fetchDashboardData();
   };
@@ -413,23 +476,25 @@ export default function Dashboard() {
                     <input type="text" placeholder="Price (e.g. 4.5M AED)" className="px-4 py-2.5 bg-gray-50 dark:bg-[#0c0e12] border border-gray-200 dark:border-[#2a2c31] rounded-xl outline-none focus:border-blue-400 text-sm transition-colors" value={newProp.price} onChange={e => setNewProp({...newProp, price: e.target.value})} />
                     <input type="text" placeholder="Description" className="px-4 py-2.5 bg-gray-50 dark:bg-[#0c0e12] border border-gray-200 dark:border-[#2a2c31] rounded-xl outline-none focus:border-blue-400 text-sm transition-colors" value={newProp.description} onChange={e => setNewProp({...newProp, description: e.target.value})} />
                     
-                    <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-3 mt-1">
-                      <div className="relative">
-                        <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
-                          <span className="text-gray-400 text-xs">📷 Image URL</span>
-                        </div>
-                        <input type="text" placeholder="Paste image link here..." className="w-full pl-24 pr-4 py-2.5 bg-gray-50 dark:bg-[#0c0e12] border border-gray-200 dark:border-[#2a2c31] rounded-xl outline-none focus:border-blue-400 text-sm transition-colors" value={newProp.image} onChange={e => setNewProp({...newProp, image: e.target.value})} />
-                      </div>
-                      <div className="relative">
-                        <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
-                          <span className="text-gray-400 text-xs">📄 PDF Brochure</span>
-                        </div>
-                        <input type="text" placeholder="Paste Google Drive/PDF link..." className="w-full pl-28 pr-4 py-2.5 bg-gray-50 dark:bg-[#0c0e12] border border-gray-200 dark:border-[#2a2c31] rounded-xl outline-none focus:border-blue-400 text-sm transition-colors" value={newProp.brochure} onChange={e => setNewProp({...newProp, brochure: e.target.value})} />
-                      </div>
+                    <div className="md:col-span-2 mt-1">
+                      <label className="block text-xs font-semibold text-gray-500 dark:text-[#6b7280] uppercase tracking-wider mb-2">Upload Property Image</label>
+                      <input 
+                        type="file" 
+                        accept="image/*"
+                        className="w-full px-4 py-2 bg-gray-50 dark:bg-[#0c0e12] border border-gray-200 dark:border-[#2a2c31] rounded-xl outline-none text-sm transition-colors file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200 cursor-pointer dark:file:bg-blue-500/20 dark:file:text-[#00f0ff] dark:hover:file:bg-blue-500/30" 
+                        onChange={e => {
+                          if (e.target.files && e.target.files[0]) {
+                            setImageFile(e.target.files[0]);
+                          }
+                        }} 
+                      />
+                      <p className="text-[10px] text-gray-400 mt-2">A PDF brochure will be automatically generated and saved when you click Save.</p>
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    <button onClick={handleAddProperty} className="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 transition-colors">Save</button>
+                    <button onClick={handleAddProperty} disabled={isUploading} className="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50">
+                      {isUploading ? 'Saving & Generating PDF...' : 'Save'}
+                    </button>
                     <button onClick={() => setIsAddingProp(false)} className="px-4 py-2 bg-gray-100 dark:bg-[#2a2c31] rounded-xl text-sm font-semibold hover:bg-gray-200 dark:hover:bg-[#333539] transition-colors">Cancel</button>
                   </div>
                 </div>

@@ -75,7 +75,7 @@ export async function POST(request: Request) {
     const chatHistoryContext = (history || []).reverse().map(h => `${h.role.toUpperCase()}: ${h.message}`).join('\n');
 
     const { data: inventoryData } = await supabase.from('inventory').select('*').eq('status', 'Available');
-    const inventoryContext = inventoryData?.map(i => `- ${i.title} in ${i.location}. Price: ${i.price}. Details: ${i.description}`).join('\n') || "No properties available right now.";
+    const inventoryContext = inventoryData?.map(i => `- ${i.title} in ${i.location}. Price: ${i.price}. Details: ${i.description}. Brochure URL: ${i.brochure || 'none'}`).join('\n') || "No properties available right now.";
 
         // --- 4. CALL GEMINI AI (Multimodal + Brochure + ROI + Calendar) ---
     const systemPrompt = `You are an elite, humble Dubai Real Estate Agent named "Aura" working exclusively for our brokerage.
@@ -94,18 +94,17 @@ export async function POST(request: Request) {
     1. ALWAYS reply in the exact same language the user uses (e.g. English, Arabic, Russian, Hindi, etc.). If unsure, default to English.
     2. Be elite, persuasive, yet extremely humble and professional.
     3. ALWAYS ask ONLY ONE question at a time to keep the conversation engaging.
-    4. If the user asks for a property, pitch ONE property from the inventory that matches. Set 'show_property' to true.
-    5. If they want a brochure or PDF, set 'send_brochure' to true.
+    4. If the user asks for a property, pitch ONE property from the inventory that matches.
+    5. If they want a brochure or PDF, set 'send_brochure_url' to the exact Brochure URL from the inventory.
     6. If they ask about returns/investment or Golden Visa, set 'calculate_roi' to true.
-    7. If they want to schedule a site visit, call, or meeting, set 'schedule_meeting' to true.
+    7. If they want to schedule a site visit, call, or meeting: DO NOT SEND A LINK. Instead, ask for their preferred Date, Time, and Email. ONLY when you have all three, set 'meeting_booked' to true and output 'meeting_date' and 'meeting_email'. Until you have all three, keep asking politely in your reply.
     8. If the user seems very serious about buying, set 'lead_status' to 'Hot'.
 
     Recent Chat History:
     ${chatHistoryContext}
     
-    Analyze the user's latest input and return
-        Analyze the user's latest input and return STRICT JSON ONLY:
-    {"reply": "Your conversational response", "lead_status": "Warm" | "Hot" | "New", "show_property": boolean, "send_brochure": boolean, "calculate_roi": boolean, "schedule_meeting": boolean}`;
+    Analyze the user's latest input and return STRICT JSON ONLY:
+    {"reply": "Your conversational response", "lead_status": "Warm" | "Hot" | "New", "send_brochure_url": "URL string or null", "calculate_roi": boolean, "meeting_booked": boolean, "meeting_date": "string or null", "meeting_email": "string or null"}`;
 
   
     const geminiPayload: any = {
@@ -126,7 +125,7 @@ export async function POST(request: Request) {
     const geminiData = await geminiRes.json();
     let aiResult;
     try { aiResult = JSON.parse(geminiData.candidates?.[0]?.content?.parts?.[0]?.text || '{}'); } 
-    catch(e) { aiResult = { reply: "Let me check our available properties and get back to you shortly.", lead_status: "Warm", show_property: false, send_brochure: false, calculate_roi: false, schedule_meeting: false }; }
+    catch(e) { aiResult = { reply: "Let me check our available properties and get back to you shortly.", lead_status: "Warm", send_brochure_url: null, calculate_roi: false, meeting_booked: false }; }
 
     let aiReplyText = aiResult.reply || "Thanks for your message! How can I help you today?";
 
@@ -134,8 +133,8 @@ export async function POST(request: Request) {
       aiReplyText += `\n\n📊 *Dubai Investment Breakdown:*\n• *Expected ROI:* 7% - 9% Tax-Free Annually.\n• *Golden Visa:* Valid for 10 years for you & your family (Required Investment: 2,000,000 AED / ~4.5 Cr INR).\n• *Capital Appreciation:* ~12% in prime locations.`;
     }
 
-    if (aiResult.schedule_meeting) {
-      aiReplyText += `\n\n📅 *Schedule a Visit/Call:*\nPlease pick a time that works best for you here: https://cal.com/nikhil-sourav`;
+    if (aiResult.meeting_booked && aiResult.meeting_date && aiResult.meeting_email) {
+      aiReplyText += `\n\n📅 *Meeting Confirmed!*\nI have booked a slot for you on ${aiResult.meeting_date}. A calendar invite will be sent to ${aiResult.meeting_email}.`;
     }
 
     // --- 5. DB: SAVE AI RESPONSE & UPDATE LEAD ---
@@ -149,7 +148,7 @@ export async function POST(request: Request) {
       body: JSON.stringify({ messaging_product: "whatsapp", to: phone, type: "text", text: { body: aiReplyText } })
     });
 
-    if (aiResult.send_brochure) {
+    if (aiResult.send_brochure_url && aiResult.send_brochure_url !== "null" && aiResult.send_brochure_url !== "none") {
       await fetch(`https://graph.facebook.com/v17.0/${PHONE_NUMBER_ID}/messages`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${META_TOKEN}`, 'Content-Type': 'application/json' },
@@ -158,8 +157,8 @@ export async function POST(request: Request) {
           to: phone,
           type: "document",
           document: {
-            link: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
-            filename: "Dubai_Luxury_Property_Brochure.pdf"
+            link: aiResult.send_brochure_url,
+            filename: "Property_Brochure.pdf"
           }
         })
       });
