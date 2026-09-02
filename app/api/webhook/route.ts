@@ -77,8 +77,13 @@ export async function POST(request: Request) {
     const { data: inventoryData } = await supabase.from('inventory').select('*').eq('status', 'Available');
     const inventoryContext = inventoryData?.map(i => `- ${i.title} in ${i.location}. Price: ${i.price}. Details: ${i.description}. Brochure URL: ${i.brochure || 'none'}`).join('\n') || "No properties available right now.";
 
+    const { data: settingsData } = await supabase.from('settings').select('*').limit(1).single();
+    const agentName = settingsData?.agent_name || "Aura";
+    const agentBio = settingsData?.agent_bio || "You are an elite, humble Dubai Real Estate Agent working exclusively for our brokerage.";
+
         // --- 4. CALL GEMINI AI (Multimodal + Brochure + ROI + Calendar) ---
-    const systemPrompt = `You are an elite, humble Dubai Real Estate Agent named "Aura" working exclusively for our brokerage.
+    const systemPrompt = `Your name is ${agentName}.
+    Your persona/bio: ${agentBio}
     You are talking to: ${name}.
     
     CRITICAL SECURITY RULES (NEVER VIOLATE THESE):
@@ -139,7 +144,30 @@ export async function POST(request: Request) {
 
     // --- 5. DB: SAVE AI RESPONSE & UPDATE LEAD ---
     await supabase.from('chat_history').insert({ phone, role: 'ai', message: aiReplyText });
-    if (aiResult.lead_status) { await supabase.from('leads').update({ status: aiResult.lead_status }).eq('phone', phone); }
+    if (aiResult.lead_status) { 
+      await supabase.from('leads').update({ status: aiResult.lead_status }).eq('phone', phone); 
+
+      // CRM Sync (Push to webhooks if Hot lead or Meeting booked)
+      if (aiResult.lead_status === 'Hot' || aiResult.meeting_booked) {
+        if (settingsData) {
+          const payload = {
+            lead_name: name,
+            lead_phone: phone,
+            status: aiResult.lead_status,
+            meeting_booked: aiResult.meeting_booked || false,
+            meeting_date: aiResult.meeting_date || null,
+            meeting_email: aiResult.meeting_email || null,
+            ai_summary: aiResult.reply
+          };
+          
+          const pushCrm = (url: string) => fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }).catch(()=>{});
+          
+          if (settingsData.hubspot_url) pushCrm(settingsData.hubspot_url);
+          if (settingsData.salesforce_url) pushCrm(settingsData.salesforce_url);
+          if (settingsData.zoho_url) pushCrm(settingsData.zoho_url);
+        }
+      }
+    }
 
     // --- 6. SEND WHATSAPP MESSAGE(S) ---
     await fetch(`https://graph.facebook.com/v17.0/${PHONE_NUMBER_ID}/messages`, {

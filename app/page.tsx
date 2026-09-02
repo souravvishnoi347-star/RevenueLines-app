@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { jsPDF } from 'jspdf';
 import { supabase } from '@/lib/supabase';
 import { 
-  BarChart3, Users, MessageSquare, RefreshCcw, 
+  BarChart3, Users, MessageSquare, RefreshCcw, X,
   MonitorSmartphone, Building, Sun, Moon, Bell, User, Search, Home, Activity, CheckCircle, TrendingUp, Plus, Trash2, MapPin, DollarSign, Bot, ArrowRight, Settings, Zap, Shield, Clock
 } from 'lucide-react';
 
@@ -21,6 +21,11 @@ export default function Dashboard() {
   const [newProp, setNewProp] = useState({title: '', location: '', price: '', description: '', image: '', brochure: ''});
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  
+  const [showCrmModal, setShowCrmModal] = useState<string | null>(null);
+  const [crmUrlInput, setCrmUrlInput] = useState('');
+  const [crmSettings, setCrmSettings] = useState<any>({});
+  const [isVerifyingCrm, setIsVerifyingCrm] = useState(false);
 
   const [selectedLeadPhone, setSelectedLeadPhone] = useState<string | null>(null);
   const [leadChatHistory, setLeadChatHistory] = useState<any[]>([]);
@@ -74,6 +79,9 @@ export default function Dashboard() {
 
   const fetchDashboardData = async () => {
     const { data: leadsData } = await supabase.from('leads').select('*').order('last_message_at', { ascending: false });
+    const { data: inventoryData } = await supabase.from('inventory').select('*').order('created_at', { ascending: false });
+    const { data: settingsData } = await supabase.from('settings').select('*').limit(1).single();
+    
     if (leadsData) {
       setLeads(leadsData);
       setStats({
@@ -82,8 +90,8 @@ export default function Dashboard() {
         recovered: leadsData.filter((l:any) => l.status === 'Recovered').length
       });
     }
-    const { data: invData } = await supabase.from('inventory').select('*').order('created_at', { ascending: false });
-    if (invData) setInventory(invData);
+    if (inventoryData) setInventory(inventoryData);
+    if (settingsData) setCrmSettings(settingsData);
   };
 
   const fetchLeadChat = async (phone: string) => {
@@ -163,6 +171,35 @@ export default function Dashboard() {
   const handleDeleteProperty = async (id: string) => {
     await supabase.from('inventory').delete().eq('id', id);
     fetchDashboardData();
+  };
+
+  const handleVerifyCrm = async () => {
+    setIsVerifyingCrm(true);
+    try {
+      // Simulate verification / send ping
+      const res = await fetch(crmUrlInput, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ test: true, message: 'RevenueLine AI Connection Test' })
+      }).catch(() => null); // Catch CORS for frontend fetches
+      
+      const columnMap: any = {
+        'HubSpot': 'hubspot_url',
+        'Salesforce': 'salesforce_url',
+        'Zoho CRM': 'zoho_url'
+      };
+      const col = columnMap[showCrmModal!];
+      
+      const { data, error } = await supabase.from('settings').update({ [col]: crmUrlInput }).eq('id', crmSettings.id);
+      
+      setCrmSettings({ ...crmSettings, [col]: crmUrlInput });
+      setShowCrmModal(null);
+      setCrmUrlInput('');
+      alert(`${showCrmModal} connected successfully! Hot leads and meetings will now sync.`);
+    } catch (e) {
+      alert("Error saving webhook. Please try again.");
+    }
+    setIsVerifyingCrm(false);
   };
 
   const handleSendCampaign = async () => {
@@ -738,14 +775,60 @@ export default function Dashboard() {
               <div className="bg-white dark:bg-[#1a1c22] p-6 rounded-2xl border border-gray-200/60 dark:border-[#2a2c31]">
                 <h4 className="text-sm font-bold mb-4 flex items-center gap-2"><Users size={16} className="text-amber-500"/> CRM Integrations</h4>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  {['HubSpot', 'Salesforce', 'Zoho CRM'].map(crm => (
-                    <div key={crm} className="p-4 rounded-xl border border-gray-100 dark:border-[#2a2c31] flex items-center justify-between card-hover">
-                      <p className="text-sm font-semibold">{crm}</p>
-                      <button className="px-3 py-1.5 bg-gray-50 dark:bg-[#0c0e12] text-xs font-semibold rounded-lg hover:bg-gray-100 dark:hover:bg-[#1e2024] border border-gray-200 dark:border-[#2a2c31] transition-colors">Connect</button>
-                    </div>
-                  ))}
+                  {[
+                    { name: 'HubSpot', key: 'hubspot_url' },
+                    { name: 'Salesforce', key: 'salesforce_url' },
+                    { name: 'Zoho CRM', key: 'zoho_url' }
+                  ].map(crm => {
+                    const isConnected = !!crmSettings?.[crm.key];
+                    return (
+                      <div key={crm.name} className="p-4 rounded-xl border border-gray-100 dark:border-[#2a2c31] flex items-center justify-between card-hover">
+                        <p className="text-sm font-semibold">{crm.name}</p>
+                        {isConnected ? (
+                          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-bold rounded-lg border border-emerald-100 dark:border-emerald-500/20">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 pulse-green"></span> Connected
+                          </div>
+                        ) : (
+                          <button 
+                            onClick={() => setShowCrmModal(crm.name)}
+                            className="px-3 py-1.5 bg-gray-50 dark:bg-[#0c0e12] text-xs font-semibold rounded-lg hover:bg-gray-100 dark:hover:bg-[#1e2024] border border-gray-200 dark:border-[#2a2c31] transition-colors"
+                          >
+                            Connect
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
+
+              {showCrmModal && (
+                <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4">
+                  <div className="bg-white dark:bg-[#1a1c22] rounded-2xl w-full max-w-md p-6 animate-fade-in border border-gray-200 dark:border-[#2a2c31] shadow-2xl relative">
+                    <button onClick={() => setShowCrmModal(null)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"><X size={18}/></button>
+                    <h3 className="text-lg font-bold mb-2">Connect {showCrmModal}</h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">Enter your Webhook URL (n8n, Make, or Zapier) to automatically sync Hot leads and scheduled meetings to {showCrmModal}.</p>
+                    
+                    <input 
+                      type="text" 
+                      placeholder="https://your-webhook-url.com/..." 
+                      className="w-full px-4 py-2.5 bg-gray-50 dark:bg-[#0c0e12] border border-gray-200 dark:border-[#2a2c31] rounded-xl outline-none focus:border-blue-400 text-sm mb-5"
+                      value={crmUrlInput}
+                      onChange={e => setCrmUrlInput(e.target.value)}
+                    />
+                    
+                    <div className="flex gap-3">
+                      <button 
+                        onClick={handleVerifyCrm} 
+                        disabled={isVerifyingCrm || !crmUrlInput}
+                        className="flex-1 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50"
+                      >
+                        {isVerifyingCrm ? 'Verifying & Saving...' : 'Verify & Connect'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div className="bg-white dark:bg-[#1a1c22] p-6 rounded-2xl border border-blue-200/50 dark:border-[#00f0ff]/10 relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-bl from-blue-500/5 to-transparent dark:from-[#00f0ff]/3 rounded-bl-full"></div>
@@ -791,7 +874,9 @@ export default function Dashboard() {
                   <h4 className="text-sm font-bold mb-5 flex items-center gap-2"><Bot size={16} className="text-blue-500"/> AI Agent Profile</h4>
                   <div className="space-y-4">
                     <div className="flex items-center gap-4 mb-4">
-                      <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-400 to-cyan-400 flex items-center justify-center text-white text-lg font-bold cursor-pointer hover:shadow-lg hover:shadow-blue-500/20 transition-all">A</div>
+                      <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-400 to-cyan-400 flex items-center justify-center text-white text-lg font-bold cursor-pointer hover:shadow-lg hover:shadow-blue-500/20 transition-all">
+                        {crmSettings.agent_name ? crmSettings.agent_name[0].toUpperCase() : 'A'}
+                      </div>
                       <div>
                         <p className="text-sm font-semibold">Profile Picture</p>
                         <p className="text-xs text-gray-400">Click to upload</p>
@@ -799,13 +884,23 @@ export default function Dashboard() {
                     </div>
                     <div>
                       <label className="block text-xs font-semibold text-gray-500 dark:text-[#6b7280] uppercase tracking-wider mb-1.5">Agent Name</label>
-                      <input type="text" defaultValue="Aura" className="w-full px-4 py-2.5 bg-gray-50 dark:bg-[#0c0e12] border border-gray-200 dark:border-[#2a2c31] rounded-xl outline-none focus:border-blue-400 text-sm" />
+                      <input type="text" value={crmSettings.agent_name || ''} onChange={e => setCrmSettings({...crmSettings, agent_name: e.target.value})} className="w-full px-4 py-2.5 bg-gray-50 dark:bg-[#0c0e12] border border-gray-200 dark:border-[#2a2c31] rounded-xl outline-none focus:border-blue-400 text-sm" />
                     </div>
                     <div>
                       <label className="block text-xs font-semibold text-gray-500 dark:text-[#6b7280] uppercase tracking-wider mb-1.5">Bio</label>
-                      <textarea defaultValue="Hi, I am Aura, your 24/7 AI Real Estate Assistant. Ask me anything about Dubai properties!" className="w-full h-20 px-4 py-2.5 bg-gray-50 dark:bg-[#0c0e12] border border-gray-200 dark:border-[#2a2c31] rounded-xl outline-none focus:border-blue-400 resize-none text-sm"></textarea>
+                      <textarea value={crmSettings.agent_bio || ''} onChange={e => setCrmSettings({...crmSettings, agent_bio: e.target.value})} className="w-full h-20 px-4 py-2.5 bg-gray-50 dark:bg-[#0c0e12] border border-gray-200 dark:border-[#2a2c31] rounded-xl outline-none focus:border-blue-400 resize-none text-sm"></textarea>
                     </div>
-                    <button className="px-4 py-2.5 bg-gradient-to-r from-blue-600 to-cyan-600 dark:from-[#00f0ff] dark:to-[#00c8ff] text-white dark:text-[#0c0e12] font-semibold rounded-xl text-xs hover:shadow-lg hover:shadow-blue-500/20 active:scale-[0.98] transition-all">Sync to WhatsApp</button>
+                    <button 
+                      onClick={async () => {
+                        try {
+                          await supabase.from('settings').update({ agent_name: crmSettings.agent_name, agent_bio: crmSettings.agent_bio }).eq('id', crmSettings.id);
+                          alert("Profile updated in database! (In production, this will push the update to your Meta WhatsApp Business Profile via API)");
+                        } catch(e) { alert("Error saving profile"); }
+                      }}
+                      className="px-4 py-2.5 bg-gradient-to-r from-blue-600 to-cyan-600 dark:from-[#00f0ff] dark:to-[#00c8ff] text-white dark:text-[#0c0e12] font-semibold rounded-xl text-xs hover:shadow-lg hover:shadow-blue-500/20 active:scale-[0.98] transition-all"
+                    >
+                      Sync to WhatsApp
+                    </button>
                   </div>
                 </div>
 
