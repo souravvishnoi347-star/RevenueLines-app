@@ -182,7 +182,7 @@ export default function Dashboard() {
       const res = await fetch(crmUrlInput, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ test: true, message: 'RevenueLine AI Connection Test' })
+        body: JSON.stringify({ test: true, message: 'Propnexaa AI Connection Test' })
       }).catch(() => null); // Catch CORS for frontend fetches
       
       const columnMap: any = {
@@ -249,7 +249,7 @@ export default function Dashboard() {
             <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-cyan-500 dark:from-[#00f0ff] dark:to-[#00ff88] rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-500/20">
               <Activity size={28} className="text-white dark:text-[#0c0e12]" strokeWidth={2.5} />
             </div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">RevenueLine</h1>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">Propnexaa</h1>
             <p className="text-sm text-gray-500 dark:text-[#b9cacb] mt-1">AI Real Estate Intelligence Platform</p>
           </div>
 
@@ -292,7 +292,7 @@ export default function Dashboard() {
             <Activity size={18} className="text-white dark:text-[#0c0e12]" strokeWidth={2.5} />
           </div>
           <div className="flex-1">
-            <h1 className="text-base font-bold text-gray-900 dark:text-white tracking-tight leading-tight">RevenueLine</h1>
+            <h1 className="text-base font-bold text-gray-900 dark:text-white tracking-tight leading-tight">Propnexaa</h1>
             <p className="text-[10px] text-gray-400 dark:text-[#6b7280] font-medium uppercase tracking-wider">AI Platform</p>
           </div>
           <button className="md:hidden text-gray-400 hover:text-gray-600" onClick={() => setIsMobileMenuOpen(false)}>✕</button>

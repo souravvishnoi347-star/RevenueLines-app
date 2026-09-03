@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "RevenueLine Automation",
+  title: "Propnexaa Automation",
   description: "Dubai Real Estate AI Automation",
 };
 
