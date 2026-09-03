@@ -26,6 +26,8 @@ export default function Dashboard() {
   const [crmUrlInput, setCrmUrlInput] = useState('');
   const [crmSettings, setCrmSettings] = useState<any>({});
   const [isVerifyingCrm, setIsVerifyingCrm] = useState(false);
+  const [agentDpFile, setAgentDpFile] = useState<File | null>(null);
+  const [isSyncingDp, setIsSyncingDp] = useState(false);
 
   const [selectedLeadPhone, setSelectedLeadPhone] = useState<string | null>(null);
   const [leadChatHistory, setLeadChatHistory] = useState<any[]>([]);
@@ -874,12 +876,18 @@ export default function Dashboard() {
                   <h4 className="text-sm font-bold mb-5 flex items-center gap-2"><Bot size={16} className="text-blue-500"/> AI Agent Profile</h4>
                   <div className="space-y-4">
                     <div className="flex items-center gap-4 mb-4">
-                      <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-400 to-cyan-400 flex items-center justify-center text-white text-lg font-bold cursor-pointer hover:shadow-lg hover:shadow-blue-500/20 transition-all">
-                        {crmSettings.agent_name ? crmSettings.agent_name[0].toUpperCase() : 'A'}
+                      <div className="relative w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-400 to-cyan-400 flex items-center justify-center text-white text-lg font-bold cursor-pointer hover:shadow-lg hover:shadow-blue-500/20 transition-all overflow-hidden group">
+                        {agentDpFile ? (
+                          <img src={URL.createObjectURL(agentDpFile)} className="w-full h-full object-cover" alt="Agent DP" />
+                        ) : (
+                          <>{crmSettings.agent_name ? crmSettings.agent_name[0].toUpperCase() : 'A'}</>
+                        )}
+                        <input type="file" accept="image/*" onChange={(e) => { if(e.target.files && e.target.files[0]) setAgentDpFile(e.target.files[0]) }} className="absolute inset-0 opacity-0 cursor-pointer" />
+                        <div className="absolute inset-0 bg-black/40 hidden group-hover:flex items-center justify-center text-[10px] uppercase font-bold tracking-wider">Edit</div>
                       </div>
                       <div>
                         <p className="text-sm font-semibold">Profile Picture</p>
-                        <p className="text-xs text-gray-400">Click to upload</p>
+                        <p className="text-xs text-gray-400">Click avatar to upload</p>
                       </div>
                     </div>
                     <div>
@@ -892,14 +900,32 @@ export default function Dashboard() {
                     </div>
                     <button 
                       onClick={async () => {
+                        setIsSyncingDp(true);
                         try {
-                          await supabase.from('settings').update({ agent_name: crmSettings.agent_name, agent_bio: crmSettings.agent_bio }).eq('id', crmSettings.id);
-                          alert("Profile updated in database! (In production, this will push the update to your Meta WhatsApp Business Profile via API)");
+                          // 1. Save to Supabase (Local config)
+                          await supabase.from('settings').update({ agent_name: crmSettings.agent_name, agent_bio: crmSettings.agent_bio }).eq('id', crmSettings.id || '00000000-0000-0000-0000-000000000001');
+                          
+                          // 2. Sync to Meta API
+                          const formData = new FormData();
+                          if (crmSettings.agent_bio) formData.append('bio', crmSettings.agent_bio);
+                          if (agentDpFile) formData.append('image', agentDpFile);
+                          
+                          const metaRes = await fetch('/api/whatsapp-profile', { method: 'POST', body: formData });
+                          const metaData = await metaRes.json();
+                          
+                          if (metaData.success) {
+                            alert("Profile successfully synced to Meta WhatsApp Business!");
+                            setAgentDpFile(null); // reset file input
+                          } else {
+                            alert("Saved locally, but Meta Sync failed: " + (metaData.error || 'Unknown Error'));
+                          }
                         } catch(e) { alert("Error saving profile"); }
+                        setIsSyncingDp(false);
                       }}
-                      className="px-4 py-2.5 bg-gradient-to-r from-blue-600 to-cyan-600 dark:from-[#00f0ff] dark:to-[#00c8ff] text-white dark:text-[#0c0e12] font-semibold rounded-xl text-xs hover:shadow-lg hover:shadow-blue-500/20 active:scale-[0.98] transition-all"
+                      disabled={isSyncingDp}
+                      className="w-full px-4 py-2.5 bg-gradient-to-r from-blue-600 to-cyan-600 dark:from-[#00f0ff] dark:to-[#00c8ff] text-white dark:text-[#0c0e12] font-semibold rounded-xl text-xs hover:shadow-lg hover:shadow-blue-500/20 active:scale-[0.98] transition-all disabled:opacity-50"
                     >
-                      Sync to WhatsApp
+                      {isSyncingDp ? 'Syncing to Meta API...' : 'Sync to WhatsApp'}
                     </button>
                   </div>
                 </div>
