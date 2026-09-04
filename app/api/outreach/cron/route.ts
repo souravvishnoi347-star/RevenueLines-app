@@ -18,7 +18,10 @@ const transporter = nodemailer.createTransport({
 });
 
 async function generateWithGemini(prompt: string) {
-  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`, {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) throw new Error("GEMINI_API_KEY is missing in env vars.");
+
+  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -27,6 +30,9 @@ async function generateWithGemini(prompt: string) {
     })
   });
   const data = await res.json();
+  if (data.error) {
+    throw new Error(data.error.message || "Unknown Gemini API Error");
+  }
   return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
 }
 
