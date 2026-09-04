@@ -4,7 +4,7 @@ import { jsPDF } from 'jspdf';
 import { supabase } from '@/lib/supabase';
 import { 
   BarChart3, Users, MessageSquare, RefreshCcw, X,
-  MonitorSmartphone, Building, Sun, Moon, Bell, User, Search, Home, Activity, CheckCircle, TrendingUp, Plus, Trash2, MapPin, DollarSign, Bot, ArrowRight, Settings, Zap, Shield, Clock
+  MonitorSmartphone, Building, Sun, Moon, Bell, User, Search, Home, Activity, CheckCircle, TrendingUp, Plus, Trash2, MapPin, DollarSign, Bot, ArrowRight, Settings, Zap, Shield, Clock, Mail
 } from 'lucide-react';
 
 export default function Dashboard() {
@@ -306,6 +306,7 @@ export default function Dashboard() {
               { id: 'home', icon: <Home size={18}/>, label: 'Dashboard' },
               { id: 'leads', icon: <Users size={18}/>, label: 'Live Leads' },
               { id: 'chats', icon: <MessageSquare size={18}/>, label: 'AI Chats' },
+              { id: 'outreach', icon: <Mail size={18}/>, label: 'Outreach' },
               { id: 'inventory', icon: <Building size={18}/>, label: 'Inventory' },
             ].map(tab => (
               <li key={tab.id}>
@@ -968,3 +969,5 @@ export default function Dashboard() {
     </div>
   );
 }
+
+
