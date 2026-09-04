@@ -2,10 +2,12 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import nodemailer from 'nodemailer';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+// Instantiate supabase lazily or handle empty string
+const getSupabase = () => createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL || "https://placeholder.supabase.co",
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "placeholder"
 );
+const supabase = getSupabase();
 
 const transporter = nodemailer.createTransport({
   service: 'gmail',
@@ -15,7 +17,7 @@ const transporter = nodemailer.createTransport({
   }
 });
 
-async function generateWithGemini(prompt) {
+async function generateWithGemini(prompt: string) {
   const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -28,7 +30,7 @@ async function generateWithGemini(prompt) {
   return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
 }
 
-export async function GET(req) {
+export async function GET(req: Request) {
   try {
     // 1. Fetch 2 unsent leads
     const { data: leads, error } = await supabase
@@ -87,7 +89,7 @@ Rules:
 
     return NextResponse.json({ success: true, processed: results });
 
-  } catch (err) {
+  } catch (err: any) {
     console.error('Outreach error:', err);
     return NextResponse.json({ success: false, error: err.message }, { status: 500 });
   }

@@ -570,22 +570,23 @@ export default function Dashboard() {
                     </button>
                   </div>
                 </div>
-                <div className="flex gap-4 mb-4">
+                
+                <div className="flex justify-between items-center mb-4">
+                  <h4 className="font-bold text-sm">Outreach Actions</h4>
                   <button 
                     onClick={async () => {
                       alert('Triggering Outreach Engine...');
                       const res = await fetch('/api/outreach/cron');
                       const data = await res.json();
                       if(data.success) {
-                        alert('Emails sent to: ' + data.processed.map(p => p.email).join(', '));
+                        alert('Emails sent to: ' + data.processed.map((p: any) => p.email).join(', '));
                       } else {
                         alert('Message: ' + (data.message || data.error));
                       }
                     }}
                     className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white font-semibold rounded-xl text-xs shadow-lg transition-all">
-                    ? Process Queue (Send 2 Mails)
+                    Process Queue (Send 2 Mails)
                   </button>
-                  </div>
                 </div>
                 {outreachLeads.length === 0 ? (
                   <div className="text-center py-10 text-gray-400 text-sm">
