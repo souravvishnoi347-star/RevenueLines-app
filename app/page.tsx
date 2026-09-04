@@ -16,6 +16,7 @@ export default function Dashboard() {
   const [leads, setLeads] = useState<any[]>([]);
   const [stats, setStats] = useState({ total: 0, active: 0, recovered: 0 });
   const [inventory, setInventory] = useState<any[]>([]);
+    const [outreachLeads, setOutreachLeads] = useState<any[]>([]);
   
   const [isAddingProp, setIsAddingProp] = useState(false);
   const [newProp, setNewProp] = useState({title: '', location: '', price: '', description: '', image: '', brochure: ''});
@@ -82,6 +83,7 @@ export default function Dashboard() {
   const fetchDashboardData = async () => {
     const { data: leadsData } = await supabase.from('leads').select('*').order('last_message_at', { ascending: false });
     const { data: inventoryData } = await supabase.from('inventory').select('*').order('created_at', { ascending: false });
+      const { data: outreachData } = await supabase.from('outreach_leads').select('*').order('created_at', { ascending: false });
     const { data: settingsData } = await supabase.from('settings').select('*').limit(1).single();
     
     if (leadsData) {
@@ -93,6 +95,7 @@ export default function Dashboard() {
       });
     }
     if (inventoryData) setInventory(inventoryData);
+      if (outreachData) setOutreachLeads(outreachData);
     if (settingsData) setCrmSettings(settingsData);
   };
 
@@ -506,15 +509,15 @@ export default function Dashboard() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="bg-white dark:bg-[#1a1c22] border border-gray-100 dark:border-[#2a2c31] rounded-2xl p-5 shadow-sm">
                   <h4 className="text-sm font-semibold text-gray-500 mb-1">Total Leads</h4>
-                  <p className="text-2xl font-bold dark:text-white">34,000</p>
+                  <p className="text-2xl font-bold dark:text-white">{outreachLeads.length}</p>
                 </div>
                 <div className="bg-white dark:bg-[#1a1c22] border border-gray-100 dark:border-[#2a2c31] rounded-2xl p-5 shadow-sm">
                   <h4 className="text-sm font-semibold text-emerald-500 mb-1">Emails Sent</h4>
-                  <p className="text-2xl font-bold dark:text-white">0</p>
+                  <p className="text-2xl font-bold dark:text-white">{outreachLeads.filter(l => l.status === 'sent').length}</p>
                 </div>
                 <div className="bg-white dark:bg-[#1a1c22] border border-gray-100 dark:border-[#2a2c31] rounded-2xl p-5 shadow-sm">
-                  <h4 className="text-sm font-semibold text-blue-500 mb-1">Queue (Daily Limit: 50)</h4>
-                  <p className="text-2xl font-bold dark:text-white">Active</p>
+                  <h4 className="text-sm font-semibold text-blue-500 mb-1">Queue (Unsent)</h4>
+                  <p className="text-2xl font-bold dark:text-white">{outreachLeads.filter(l => l.status === 'unsent').length}</p>
                 </div>
               </div>
               
@@ -556,6 +559,7 @@ export default function Dashboard() {
                           if(error) alert('Error uploading leads: ' + error.message);
                           else {
                             alert('Leads uploaded successfully!');
+                            fetchDashboardData();
                           }
                         }
                         e.target.value = '';
@@ -583,10 +587,40 @@ export default function Dashboard() {
                   </button>
                   </div>
                 </div>
-                <div className="text-center py-10 text-gray-400 text-sm">
-                  <Mail size={40} className="mx-auto mb-3 opacity-20" />
-                  <p>Upload a CSV file with columns: <b>Name, Email, Phone, Agency Name</b></p>
-                </div>
+                {outreachLeads.length === 0 ? (
+                  <div className="text-center py-10 text-gray-400 text-sm">
+                    <Mail size={40} className="mx-auto mb-3 opacity-20" />
+                    <p>Upload a CSV file with columns: <b>Name, Email, Phone, Agency Name</b></p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="border-b border-gray-200 dark:border-[#2a2c31] text-xs uppercase text-gray-500">
+                          <th className="py-3 pr-4 font-semibold">Name</th>
+                          <th className="py-3 px-4 font-semibold">Email</th>
+                          <th className="py-3 px-4 font-semibold">Agency</th>
+                          <th className="py-3 px-4 font-semibold">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody className="text-sm">
+                        {outreachLeads.slice(0, 50).map(lead => (
+                          <tr key={lead.id} className="border-b border-gray-50 dark:border-[#1e2024] last:border-0">
+                            <td className="py-3 pr-4 font-medium dark:text-white">{lead.name}</td>
+                            <td className="py-3 px-4 text-gray-500">{lead.email}</td>
+                            <td className="py-3 px-4 text-gray-500">{lead.agency_name || '-'}</td>
+                            <td className="py-3 px-4">
+                              <span className={`px-2 py-1 rounded-md text-xs font-bold ${lead.status === 'sent' ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-500/10' : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'}`}>
+                                {lead.status.toUpperCase()}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    {outreachLeads.length > 50 && <p className="text-xs text-center text-gray-400 mt-4">Showing last 50 leads...</p>}
+                  </div>
+                )}
               </div>
             </div>
           )}
