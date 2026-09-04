@@ -566,6 +566,23 @@ export default function Dashboard() {
                     </button>
                   </div>
                 </div>
+                <div className="flex gap-4 mb-4">
+                  <button 
+                    onClick={async () => {
+                      alert('Triggering Outreach Engine...');
+                      const res = await fetch('/api/outreach/cron');
+                      const data = await res.json();
+                      if(data.success) {
+                        alert('Emails sent to: ' + data.processed.map(p => p.email).join(', '));
+                      } else {
+                        alert('Message: ' + (data.message || data.error));
+                      }
+                    }}
+                    className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white font-semibold rounded-xl text-xs shadow-lg transition-all">
+                    ? Process Queue (Send 2 Mails)
+                  </button>
+                  </div>
+                </div>
                 <div className="text-center py-10 text-gray-400 text-sm">
                   <Mail size={40} className="mx-auto mb-3 opacity-20" />
                   <p>Upload a CSV file with columns: <b>Name, Email, Phone, Agency Name</b></p>
