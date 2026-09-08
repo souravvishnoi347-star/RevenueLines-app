@@ -4,7 +4,7 @@ import { jsPDF } from 'jspdf';
 import { supabase } from '@/lib/supabase';
 import { 
   BarChart3, Users, MessageSquare, RefreshCcw, X,
-  MonitorSmartphone, Building, Sun, Moon, Bell, User, Search, Home, Activity, CheckCircle, TrendingUp, Plus, Trash2, MapPin, DollarSign, Bot, ArrowRight, Settings, Zap, Shield, Clock, Mail
+  MonitorSmartphone, Building, Sun, Moon, Bell, User, Search, Home, Activity, CheckCircle, TrendingUp, Plus, Trash2, MapPin, DollarSign, Bot, ArrowRight, Settings, Zap, Shield, Clock, Mail, Sparkles
 } from 'lucide-react';
 
 export default function Dashboard() {
@@ -17,6 +17,7 @@ export default function Dashboard() {
   const [stats, setStats] = useState({ total: 0, active: 0, recovered: 0 });
   const [inventory, setInventory] = useState<any[]>([]);
     const [outreachLeads, setOutreachLeads] = useState<any[]>([]);
+    const [selectedLead, setSelectedLead] = useState<any | null>(null);
   
   const [isAddingProp, setIsAddingProp] = useState(false);
   const [newProp, setNewProp] = useState({title: '', location: '', price: '', description: '', image: '', brochure: ''});
@@ -591,7 +592,7 @@ export default function Dashboard() {
                 {outreachLeads.length === 0 ? (
                   <div className="text-center py-10 text-gray-400 text-sm">
                     <Mail size={40} className="mx-auto mb-3 opacity-20" />
-                    <p>Upload a CSV file with columns: <b>Name, Email, Phone, Agency Name</b></p>
+                    <p>Upload a CSV file (DLD_Dubai_Brokers...)</p>
                   </div>
                 ) : (
                   <div className="overflow-x-auto">
@@ -606,7 +607,7 @@ export default function Dashboard() {
                       </thead>
                       <tbody className="text-sm">
                         {outreachLeads.slice(0, 50).map(lead => (
-                          <tr key={lead.id} className="border-b border-gray-50 dark:border-[#1e2024] last:border-0">
+                          <tr key={lead.id} onClick={() => setSelectedLead(lead)} className="border-b border-gray-50 dark:border-[#1e2024] last:border-0 hover:bg-gray-50 dark:hover:bg-[#1a1c22] cursor-pointer transition-colors">
                             <td className="py-3 pr-4 font-medium dark:text-white">{lead.name}</td>
                             <td className="py-3 px-4 text-gray-500">{lead.email}</td>
                             <td className="py-3 px-4 text-gray-500">{lead.agency_name || '-'}</td>
@@ -622,7 +623,65 @@ export default function Dashboard() {
                     {outreachLeads.length > 50 && <p className="text-xs text-center text-gray-400 mt-4">Showing last 50 leads...</p>}
                   </div>
                 )}
-              </div>
+              
+                {/* Lead CRM Modal */}
+                {selectedLead && (
+                  <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setSelectedLead(null)}>
+                    <div className="bg-white dark:bg-[#0c0e12] border border-gray-200 dark:border-[#2a2c31] rounded-2xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl" onClick={e => e.stopPropagation()}>
+                      <div className="flex justify-between items-start mb-6">
+                        <div>
+                          <h2 className="text-xl font-bold dark:text-white">{selectedLead.name}</h2>
+                          <p className="text-sm text-gray-500">{selectedLead.email} � {selectedLead.phone || 'No Phone'}</p>
+                        </div>
+                        <button onClick={() => setSelectedLead(null)} className="text-gray-400 hover:text-gray-900 dark:hover:text-white text-xl">&times;</button>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4 mb-6">
+                        <div className="bg-gray-50 dark:bg-[#1a1c22] p-4 rounded-xl">
+                          <p className="text-xs text-gray-500 uppercase font-semibold mb-1">Agency</p>
+                          <p className="font-medium dark:text-white">{selectedLead.agency_name || '-'}</p>
+                        </div>
+                        <div className="bg-gray-50 dark:bg-[#1a1c22] p-4 rounded-xl">
+                          <p className="text-xs text-gray-500 uppercase font-semibold mb-1">Agency Size</p>
+                          <p className="font-medium dark:text-white">{selectedLead.agency_size || '-'}</p>
+                        </div>
+                        <div className="col-span-2 bg-gray-50 dark:bg-[#1a1c22] p-4 rounded-xl">
+                          <p className="text-xs text-gray-500 uppercase font-semibold mb-1">AI Recommended Offer</p>
+                          <p className="font-medium dark:text-white">{selectedLead.recommended_offer || '-'}</p>
+                        </div>
+                      </div>
+
+                      {selectedLead.status === 'sent' && selectedLead.ai_rationale && (
+                        <div className="mb-6">
+                          <h3 className="text-sm font-bold text-blue-600 dark:text-[#00f0ff] mb-2 flex items-center gap-2">
+                            <Sparkles size={16} /> AI Thought Process & Rationale
+                          </h3>
+                          <div className="bg-blue-50 dark:bg-[#00f0ff]/10 border border-blue-100 dark:border-[#00f0ff]/20 p-4 rounded-xl text-sm dark:text-blue-100 leading-relaxed">
+                            {selectedLead.ai_rationale}
+                          </div>
+                        </div>
+                      )}
+
+                      {selectedLead.status === 'sent' && selectedLead.ai_generated_body && (
+                        <div>
+                          <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-2">Email Sent</h3>
+                          <div className="bg-gray-50 dark:bg-[#1a1c22] border border-gray-200 dark:border-[#2a2c31] p-4 rounded-xl text-sm text-gray-600 dark:text-gray-300 whitespace-pre-wrap font-mono">
+                            <span className="font-bold text-gray-900 dark:text-white block mb-2">Subject: {selectedLead.ai_generated_subject}</span>
+                            {selectedLead.ai_generated_body}
+                          </div>
+                        </div>
+                      )}
+
+                      {selectedLead.status === 'unsent' && (
+                        <div className="text-center py-8 text-gray-400">
+                          <p>This lead is waiting in the queue.</p>
+                          <p className="text-xs mt-1">AI will generate rationale and email upon sending.</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+</div>
             </div>
           )}
 
