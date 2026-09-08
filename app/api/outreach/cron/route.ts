@@ -97,26 +97,41 @@ Rules:
       const emailSubject = emailSubjectRaw.trim().replace(/['"]/g, '') || 'Quick question regarding lead automation';
 
       // 3. Send Email via Gmail
-      await transporter.sendMail({
-        from: `"Sourav | Propnexaa" <${process.env.GMAIL_USER}>`,
-        to: lead.email,
-        subject: emailSubject,
-        text: emailBody
-      });
+      try {
+        if (!lead.email || !lead.email.includes('@')) throw new Error("Invalid email address: " + lead.email);
+        
+        await transporter.sendMail({
+          from: `"Sourav | Propnexaa" <${process.env.GMAIL_USER}>`,
+          to: lead.email,
+          subject: emailSubject,
+          text: emailBody
+        });
 
-      // 4. Update lead status in Supabase
-      await supabase
-        .from('outreach_leads')
-        .update({
-          status: 'sent',
-          ai_generated_subject: emailSubject,
-          ai_generated_body: emailBody,
-          ai_rationale: aiRationale,
-          sent_at: new Date().toISOString()
-        })
-        .eq('id', lead.id);
+        // 4. Update lead status in Supabase
+        await supabase
+          .from('outreach_leads')
+          .update({
+            status: 'sent',
+            ai_generated_subject: emailSubject,
+            ai_generated_body: emailBody,
+            ai_rationale: aiRationale,
+            sent_at: new Date().toISOString()
+          })
+          .eq('id', lead.id);
 
-      results.push({ email: lead.email, status: 'sent' });
+        results.push({ email: lead.email, status: 'sent' });
+      } catch (sendErr: any) {
+        // Mark as failed so it doesn't block the queue forever
+        await supabase
+          .from('outreach_leads')
+          .update({
+            status: 'failed',
+            ai_rationale: "Failed to send: " + sendErr.message
+          })
+          .eq('id', lead.id);
+        
+        results.push({ email: lead.email, status: 'failed', error: sendErr.message });
+      }
     }
 
     return NextResponse.json({ success: true, processed: results });

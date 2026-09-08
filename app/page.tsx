@@ -574,6 +574,7 @@ export default function Dashboard() {
                 
                 <div className="flex justify-between items-center mb-4">
                   <h4 className="font-bold text-sm">Outreach Actions</h4>
+                  <button onClick={async () => { if(confirm('Clear all leads?')) { await supabase.from('outreach_leads').delete().neq('id', 0); fetchDashboardData(); } }} className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-xl text-xs shadow-lg transition-all mr-2">Clear Data</button>
                   <button 
                     onClick={async () => {
                       alert('Triggering Outreach Engine...');
@@ -612,7 +613,7 @@ export default function Dashboard() {
                             <td className="py-3 px-4 text-gray-500">{lead.email}</td>
                             <td className="py-3 px-4 text-gray-500">{lead.agency_name || '-'}</td>
                             <td className="py-3 px-4">
-                              <span className={`px-2 py-1 rounded-md text-xs font-bold ${lead.status === 'sent' ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-500/10' : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'}`}>
+                              <span className={`px-2 py-1 rounded-md text-xs font-bold ${lead.status === 'sent' ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-500/10' : lead.status === 'failed' ? 'bg-red-100 text-red-600 dark:bg-red-500/10' : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'}`}>
                                 {lead.status.toUpperCase()}
                               </span>
                             </td>
