@@ -29,15 +29,24 @@ async function generateWithGemini(prompt: string, isJson: boolean = false) {
     payload.generationConfig.responseMimeType = "application/json";
   }
 
-  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`, {
+  let res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)
   });
   
-  const data = await res.json();
+  let data = await res.json();
   if (data.error) {
-    throw new Error(data.error.message || "Unknown Gemini API Error");
+    // Fallback to gemini-1.5-flash if 2.5 is busy or unavailable
+    res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    data = await res.json();
+    if (data.error) {
+      throw new Error(data.error.message || "Unknown Gemini API Error");
+    }
   }
   return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
 }
