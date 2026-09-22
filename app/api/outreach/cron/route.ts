@@ -30,7 +30,8 @@ async function generateWithGemini(prompt: string, isJson: boolean = false) {
     payload.generationConfig.responseMimeType = "application/json";
   }
 
-  let res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+  // Primary: gemini-3.6-flash (current production model)
+  let res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)
@@ -38,15 +39,24 @@ async function generateWithGemini(prompt: string, isJson: boolean = false) {
   
   let data = await res.json();
   if (data.error) {
-    // Fallback to gemini-1.5-flash if 2.5 is busy or unavailable
-    res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+    // Fallback 1: gemini-3.5-flash-lite
+    res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${apiKey}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     });
     data = await res.json();
     if (data.error) {
-      throw new Error(data.error.message || "Unknown Gemini API Error");
+      // Fallback 2: gemini-3.5-flash
+      res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      data = await res.json();
+      if (data.error) {
+        throw new Error(data.error.message || "Unknown Gemini API Error");
+      }
     }
   }
   return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
