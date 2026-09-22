@@ -536,33 +536,69 @@ export default function Dashboard() {
                         if(!file) return;
                         
                         const text = await file.text();
-                        const lines = text.split('\n').filter(line => line.trim() !== '');
+                        // Handle both \r\n (Windows) and \n line endings
+                        const lines = text.split(/\r?\n/).filter(line => line.trim() !== '');
+                        if (lines.length < 2) { alert('CSV is empty or has no data rows.'); return; }
                         
-                        // Assuming header: Name,Email,Phone,Agency Name
-                        // Skip header (i=1)
-                        const newLeads = [];
-                        for(let i=1; i<lines.length; i++) {
-                          const parts = lines[i].split(',').map(s => s?.trim());
-                          if(parts.length >= 2) {
-                            newLeads.push({
-                              name: parts[0]?.replace(/['"]/g, '') || '',
-                              email: parts[1]?.replace(/['"]/g, '') || '',
-                              phone: parts[2] ? parts[2].replace(/['"]/g, '') : null,
-                              agency_name: parts[3] ? parts[3].replace(/['"]/g, '') : null,
-                              status: 'unsent'
-                            });
+                        // Parse header row to auto-detect columns
+                        const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/['"]/g, ''));
+                        
+                        const colIndex = (candidates: string[]) => {
+                          for (const c of candidates) {
+                            const idx = headers.findIndex(h => h.includes(c));
+                            if (idx !== -1) return idx;
                           }
+                          return -1;
+                        };
+                        
+                        // Auto-detect column positions from header
+                        const nameCol   = colIndex(['name english', 'name', 'broker', 'full name', 'contact']);
+                        const emailCol  = colIndex(['email', 'e-mail', 'mail']);
+                        const phoneCol  = colIndex(['phone', 'mobile', 'cell', 'whatsapp']);
+                        const agencyCol = colIndex(['office name', 'agency', 'company', 'firm', 'brokerage']);
+                        const sizeCol   = colIndex(['agency_size', 'broker_count', 'team size', 'size', 'segment']);
+                        const offerCol  = colIndex(['recommended_offer', 'offer', 'recommendation']);
+                        const tierCol   = colIndex(['outbound_tier', 'tier', 'icp_score']);
+                        
+                        if (emailCol === -1) { alert('No email column found in CSV. Please ensure your file has an "Email" column.'); return; }
+                        
+                        const newLeads: any[] = [];
+                        for(let i = 1; i < lines.length; i++) {
+                          // Handle quoted CSVs properly
+                          const parts = lines[i].match(/("([^"]*(?:""[^"]*)*)"|([^,]+)|(?<=,)(?=,)|(?<=,)$|^(?=,))/g)
+                            ?.map(s => s.replace(/^"|"$/g, '').replace(/""/g, '"').trim()) 
+                            ?? lines[i].split(',').map(s => s.trim());
+                          
+                          const email = emailCol !== -1 ? parts[emailCol]?.replace(/['"]/g, '').trim() : '';
+                          if (!email || !email.includes('@')) continue;
+                          
+                          newLeads.push({
+                            name:               nameCol !== -1 ? parts[nameCol]?.replace(/['"]/g, '').trim() : '',
+                            email:              email.toLowerCase(),
+                            phone:              phoneCol !== -1 ? parts[phoneCol]?.replace(/['"]/g, '').trim() : null,
+                            agency_name:        agencyCol !== -1 ? parts[agencyCol]?.replace(/['"]/g, '').trim() : null,
+                            agency_size:        sizeCol !== -1 ? parts[sizeCol]?.replace(/['"]/g, '').trim() : null,
+                            recommended_offer:  offerCol !== -1 ? parts[offerCol]?.replace(/['"]/g, '').trim() : null,
+                            outbound_tier:      tierCol !== -1 ? parts[tierCol]?.replace(/['"]/g, '').trim() : null,
+                            status: 'unsent'
+                          });
                         }
                         
-                        if(newLeads.length > 0) {
-                          alert('Found ' + newLeads.length + ' leads. Uploading...');
-                          // Assuming supabase is available in this scope
-                          const { error } = await supabase.from('outreach_leads').insert(newLeads);
-                          if(error) alert('Error uploading leads: ' + error.message);
-                          else {
-                            alert('Leads uploaded successfully!');
-                            fetchDashboardData();
-                          }
+                        if(newLeads.length === 0) { alert('No valid leads with email addresses found in the file.'); return; }
+                        
+                        alert(`Found ${newLeads.length} valid leads. Uploading...`);
+                        
+                        // Upload in batches of 50 to avoid Supabase row limits
+                        let uploaded = 0;
+                        for (let b = 0; b < newLeads.length; b += 50) {
+                          const batch = newLeads.slice(b, b + 50);
+                          const { error } = await supabase.from('outreach_leads').insert(batch);
+                          if(error) { alert('Error uploading leads: ' + error.message); break; }
+                          uploaded += batch.length;
+                        }
+                        if (uploaded > 0) {
+                          alert(`${uploaded} leads uploaded successfully!`);
+                          fetchDashboardData();
                         }
                         e.target.value = '';
                       }}
