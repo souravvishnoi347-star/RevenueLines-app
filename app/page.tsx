@@ -18,6 +18,7 @@ export default function Dashboard() {
   const [inventory, setInventory] = useState<any[]>([]);
     const [outreachLeads, setOutreachLeads] = useState<any[]>([]);
     const [selectedLead, setSelectedLead] = useState<any | null>(null);
+    const [outreachFramework, setOutreachFramework] = useState<'dld_trigger' | 'qvc' | 'pas' | 'bab' | 'soft_offer' | 'auto_rotate'>('dld_trigger');
   
   const [isAddingProp, setIsAddingProp] = useState(false);
   const [newProp, setNewProp] = useState({title: '', location: '', price: '', description: '', image: '', brochure: ''});
@@ -572,23 +573,86 @@ export default function Dashboard() {
                   </div>
                 </div>
                 
+                {/* Proven Cold Email Frameworks Selector */}
+                <div className="bg-gradient-to-r from-blue-500/5 via-cyan-500/5 to-indigo-500/5 dark:from-[#00f0ff]/5 dark:to-[#0088ff]/5 border border-blue-500/20 rounded-2xl p-5 mb-6">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-600 text-white dark:bg-[#00f0ff] dark:text-[#0c0e12] uppercase tracking-wider">
+                          Proven Copywriting Framework
+                        </span>
+                        <span className="text-xs text-amber-500 font-semibold flex items-center gap-1">
+                          ⭐ #1 Ranked for Dubai: Framework 4
+                        </span>
+                      </div>
+                      <h3 className="text-sm font-bold dark:text-white">Select Outreach Copywriting Framework</h3>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                        High-converting B2B psychology powered by Gemini 2.5 Flash and Dubai Land Department (DLD) metadata.
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <select
+                        value={outreachFramework}
+                        onChange={(e) => setOutreachFramework(e.target.value as any)}
+                        className="px-3.5 py-2 bg-white dark:bg-[#1a1c22] border border-gray-200 dark:border-[#2a2c31] rounded-xl text-xs font-semibold dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 shadow-sm"
+                      >
+                        <option value="dld_trigger">⭐ Framework 4: DLD Trigger & Observation (Recommended)</option>
+                        <option value="qvc">Framework 1: QVC (3-Sentence Speed to Lead)</option>
+                        <option value="pas">Framework 2: PAS (Lead Decay Agitator)</option>
+                        <option value="bab">Framework 3: BAB (Manual Excel vs Auto-Booked)</option>
+                        <option value="soft_offer">Framework 5: Permission-Based (60s Video Ask)</option>
+                        <option value="auto_rotate">🔄 A/B Testing Rotation (Cycle All Frameworks)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Active Framework Explainer Banner */}
+                  <div className="mt-3 pt-3 border-t border-gray-200/60 dark:border-[#2a2c31] text-xs text-gray-600 dark:text-gray-300 flex items-start gap-2">
+                    <Sparkles size={14} className="text-cyan-500 mt-0.5 shrink-0" />
+                    <div>
+                      {outreachFramework === 'dld_trigger' && (
+                        <p><strong className="text-cyan-600 dark:text-[#00f0ff]">DLD Trigger & Observation:</strong> Autonomous agent researches broker agency scale, license tier & active areas to craft a bespoke 1-to-1 trigger with pattern-interrupt subject line.</p>
+                      )}
+                      {outreachFramework === 'qvc' && (
+                        <p><strong className="text-blue-600 dark:text-blue-400">QVC Framework:</strong> Ultra-punchy 3 sentences: asks about after-hours portal response time, 15-second WhatsApp value prop, and 45-second demo ask.</p>
+                      )}
+                      {outreachFramework === 'pas' && (
+                        <p><strong className="text-amber-600 dark:text-amber-400">PAS Framework:</strong> Agitates buyer drop-off when portal leads take 15+ minutes, presenting 24/7 instant WhatsApp AI routing.</p>
+                      )}
+                      {outreachFramework === 'bab' && (
+                        <p><strong className="text-purple-600 dark:text-purple-400">BAB Framework:</strong> Paints contrast between manual spreadsheet lead chases and waking up to verified investor calendar bookings.</p>
+                      )}
+                      {outreachFramework === 'soft_offer' && (
+                        <p><strong className="text-emerald-600 dark:text-emerald-400">Permission / Soft Offer:</strong> Zero-pressure, humble 2-sentence note asking permission to send a 60-second video demo.</p>
+                      )}
+                      {outreachFramework === 'auto_rotate' && (
+                        <p><strong className="text-indigo-600 dark:text-indigo-400">A/B Testing Rotation:</strong> Automatically cycles through all 5 frameworks across queue leads to test reply rates.</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                
                 <div className="flex justify-between items-center mb-4">
                   <h4 className="font-bold text-sm">Outreach Actions</h4>
-                  <button onClick={async () => { if(confirm('Clear all leads?')) { await supabase.from('outreach_leads').delete().neq('id', 0); fetchDashboardData(); } }} className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-xl text-xs shadow-lg transition-all mr-2">Clear Data</button>
-                  <button 
-                    onClick={async () => {
-                      alert('Triggering Outreach Engine...');
-                      const res = await fetch('/api/outreach/cron');
-                      const data = await res.json();
-                      if(data.success) {
-                        alert('Emails sent to: ' + data.processed.map((p: any) => p.email).join(', '));
-                      } else {
-                        alert('Message: ' + (data.message || data.error));
-                      }
-                    }}
-                    className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white font-semibold rounded-xl text-xs shadow-lg transition-all">
-                    Process Queue (Send 2 Mails)
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button onClick={async () => { if(confirm('Clear all leads?')) { await supabase.from('outreach_leads').delete().neq('id', 0); fetchDashboardData(); } }} className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-xl text-xs shadow-lg transition-all">Clear Data</button>
+                    <button 
+                      onClick={async () => {
+                        alert(`Triggering Outreach Engine with [${outreachFramework.toUpperCase()}] Framework...`);
+                        const res = await fetch(`/api/outreach/cron?framework=${outreachFramework}`);
+                        const data = await res.json();
+                        if(data.success) {
+                          alert('Emails sent to: ' + data.processed.map((p: any) => `${p.email} (${p.framework || outreachFramework})`).join(', '));
+                          fetchDashboardData();
+                        } else {
+                          alert('Message: ' + (data.message || data.error));
+                        }
+                      }}
+                      className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white font-semibold rounded-xl text-xs shadow-lg transition-all flex items-center gap-1.5">
+                      <Sparkles size={14} /> Process Queue (Send 2 Mails)
+                    </button>
+                  </div>
                 </div>
                 {outreachLeads.length === 0 ? (
                   <div className="text-center py-10 text-gray-400 text-sm">
