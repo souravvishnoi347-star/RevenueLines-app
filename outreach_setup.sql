@@ -37,4 +37,7 @@ ALTER TABLE outreach_leads ADD COLUMN IF NOT EXISTS recommended_offer TEXT;
 ALTER TABLE outreach_leads ADD COLUMN IF NOT EXISTS outbound_tier TEXT;
 ALTER TABLE outreach_leads ADD COLUMN IF NOT EXISTS website TEXT;
 ALTER TABLE outreach_leads ADD COLUMN IF NOT EXISTS ai_rationale TEXT;
+ALTER TABLE outreach_leads ADD COLUMN IF NOT EXISTS sequence_step INT DEFAULT 1;
+ALTER TABLE outreach_leads ADD COLUMN IF NOT EXISTS message_id TEXT;
+ALTER TABLE outreach_leads ADD COLUMN IF NOT EXISTS live_research_data TEXT;
 

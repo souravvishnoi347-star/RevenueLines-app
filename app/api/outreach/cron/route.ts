@@ -30,8 +30,8 @@ async function generateWithGemini(prompt: string, isJson: boolean = false) {
     payload.generationConfig.responseMimeType = "application/json";
   }
 
-  // Primary: gemini-3.6-flash (current production model)
-  let res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`, {
+  // Primary: gemini-3.5-flash-lite (fastest, high rate limit availability)
+  let res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${apiKey}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)
@@ -39,8 +39,8 @@ async function generateWithGemini(prompt: string, isJson: boolean = false) {
   
   let data = await res.json();
   if (data.error) {
-    // Fallback 1: gemini-3.5-flash-lite
-    res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${apiKey}`, {
+    // Fallback 1: gemini-3.6-flash
+    res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
@@ -62,7 +62,7 @@ async function generateWithGemini(prompt: string, isJson: boolean = false) {
   return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
 }
 
-// Framework configurations with human-to-human Dubai Real Estate copywriting psychology
+// Framework configurations with Lavender.ai 40-word psychology and live web research
 function getFrameworkPrompt(framework: string, lead: any, enrichment: any) {
   const agency = (lead.agency_name || 'your agency').replace(/L\.?L\.?C\.?/i, '').replace(/Brokerage/i, '').trim();
   const firstName = (lead.name || 'there').split(' ')[0] || 'there';
@@ -70,86 +70,94 @@ function getFrameworkPrompt(framework: string, lead: any, enrichment: any) {
   const tier = lead.outbound_tier || 'A';
   const offer = lead.recommended_offer || 'Instant WhatsApp lead response and CRM routing';
   const activeFocus = enrichment.activeAreas?.join(' & ') || 'Dubai';
+  const liveResearch = enrichment.liveResearchSnippet;
 
   const baseRules = `
-CRITICAL FORMATTING & SPACING RULES:
-1. EVERY thought MUST be its own short paragraph separated by an empty blank line (\\n\\n).
-2. Max 1 to 2 sentences per paragraph. NEVER output a single wall of text!
-3. Total email must be under 60 words. Short, punchy, mobile-friendly.
-
-STRICTLY BANNED PHRASES (SOUNDS LIKE A BOT):
-- NEVER write "noticed [Agency] has an established team of X brokers registered on DLD"
-- NEVER write "Propnexaa solves this with instant WhatsApp AI qualification..."
-- NEVER write "I hope this email finds you well" or "As a premier agency..."
-- NEVER use marketing jargon: "revolutionize", "cutting-edge", "game-changer", "synergy", "delighted".
-
-HOW A REAL FOUNDER WRITES:
-- Write like Sourav (founder) sending a quick note from his phone while between meetings.
-- Casual peer-to-peer tone.
-- Sign off naturally:
+LAVENDER.AI WORLD-CLASS 40-WORD COPYWRITING RULES:
+1. STRICT WORD COUNT: Must be between 30 and 45 words MAXIMUM. No exceptions.
+2. READING LEVEL: 5th-grade simple English.
+3. FORMATTING: Every single thought MUST be on its own line with double line-breaks (\\n\\n). NEVER combine sentences into a single paragraph!
+4. ONLY ONE QUESTION: Exactly 1 question in the entire email (the soft closing ask).
+5. BANNED BOT PHRASES:
+   - NEVER write "noticed [Agency] has an established team of X brokers registered on DLD"
+   - NEVER write "Propnexaa solves this with..."
+   - NEVER write "I hope this email finds you well"
+   - NO marketing buzzwords ("revolutionize", "cutting-edge", "game-changer", "synergy").
+6. SIGN-OFF:
 Best,
 Sourav`;
 
+  let researchInstruction = '';
+  if (liveResearch) {
+    researchInstruction = `LIVE WEB DISCOVERY ABOUT ${firstName.toUpperCase()} / ${agency.toUpperCase()}: "${liveResearch}".
+Naturally weave this exact real fact into paragraph 2 as the personal icebreaker!`;
+  }
+
   switch (framework) {
     case 'qvc':
-      return `You are writing a cold email using the QVC framework (Question - Value - CTA).
+      return `Write a 35-word cold email using QVC (Question - Value - CTA).
 Target: ${firstName} at ${agency}. Team scale: ${size}. Active areas: ${activeFocus}.
+${researchInstruction}
 ${baseRules}
 
 Structure:
 Paragraph 1: "Hey ${firstName},"
-Paragraph 2 (Question): Ask a casual question about how ${agency} handles Property Finder / Bayut leads that come in after 8 PM or on weekends.
-Paragraph 3 (Value): 1 sentence on how Propnexaa auto-qualifies and responds to Dubai buyers on WhatsApp in 15 seconds.
-Paragraph 4 (CTA): "Worth a quick 2-minute look, or are you guys totally sorted on this?"
+Paragraph 2 (The Question): Quick question — how is ${agency} handling Property Finder inquiries that come in after 8 PM?
+Paragraph 3 (The Value): We set up a simple WhatsApp flow for Dubai brokers that replies and qualifies buyers in 15 seconds.
+Paragraph 4 (The Ask): "Worth a quick 2-minute look, or are you guys totally sorted on this?"
 Paragraph 5: "Best,\\nSourav"`;
 
     case 'pas':
-      return `You are writing a cold email using the PAS framework (Problem - Agitate - Solve).
+      return `Write a 38-word cold email using PAS (Problem - Agitate - Solve).
 Target: ${firstName} at ${agency}. Team scale: ${size}.
+${researchInstruction}
 ${baseRules}
 
 Structure:
 Paragraph 1: "Hey ${firstName},"
-Paragraph 2 (Problem & Agitate): Point out that Dubai buyers message 3+ brokers at once, and taking 15+ minutes to reply usually means losing the deal.
-Paragraph 3 (Solve): We built a lightweight WhatsApp automation that replies and qualifies buyers in 15 seconds.
-Paragraph 4 (Soft Ask): "Open to seeing how it works for ${agency}, or bad timing?"
+Paragraph 2 (Problem & Agitate): Dubai portal buyers message 3+ brokers at once, and waiting 15+ minutes usually means the deal is lost.
+Paragraph 3 (Solve): We built a lightweight WhatsApp automation that qualifies buyer budget & timeline in 15 seconds.
+Paragraph 4 (The Ask): "Open to seeing how it works for ${agency}, or bad timing?"
 Paragraph 5: "Best,\\nSourav"`;
 
     case 'bab':
-      return `You are writing a cold email using the BAB framework (Before - After - Bridge).
+      return `Write a 38-word cold email using BAB (Before - After - Bridge).
 Target: ${firstName} at ${agency}. Team scale: ${size}.
+${researchInstruction}
 ${baseRules}
 
 Structure:
 Paragraph 1: "Hey ${firstName},"
-Paragraph 2 (Contrast): Contrast agents wasting 2+ hours daily manually chasing cold portal inquiries vs. waking up with pre-qualified viewings already booked on WhatsApp.
-Paragraph 3 (Bridge): That's exactly what we set up for Dubai brokerages.
-Paragraph 4 (Ask): "Mind if I send over a 60-second video of how it routes to your agents?"
+Paragraph 2 (Contrast): Instead of chasing cold portal inquiries on WhatsApp all day, brokers can wake up with verified investor viewings already booked.
+Paragraph 3 (Bridge): That's the exact lead workflow we set up for Dubai teams.
+Paragraph 4 (The Ask): "Mind if I share a 60-second video of how it routes to your agents?"
 Paragraph 5: "Best,\\nSourav"`;
 
     case 'soft_offer':
-      return `You are writing a cold email using the Permission-Based Soft Offer framework.
+      return `Write a 35-word Permission-Based Soft Offer email.
 Target: ${firstName} at ${agency}. Team scale: ${size}.
+${researchInstruction}
 ${baseRules}
 
 Structure:
 Paragraph 1: "Hey ${firstName},"
 Paragraph 2 (Observation & Offer): Saw your team over at ${agency}. We put together a short 1-minute breakdown showing how Dubai brokers auto-reply to portal leads on WhatsApp.
-Paragraph 3 (Permission Ask): "Mind if I drop the link here, or are you guys totally good on lead response right now?"
+Paragraph 3 (Permission Ask): "Mind if I drop the link here, or are you guys totally covered on lead response right now?"
 Paragraph 4: "Best,\\nSourav"`;
 
     case 'dld_trigger':
     default:
-      return `You are writing a cold email using the DLD Trigger & Observation framework.
+      return `Write a 38-word cold email using the DLD Trigger & Live Web Intelligence framework.
 Target: ${firstName} at ${agency}.
 Scale Context: ${size} brokers. Recommended Offer: ${offer}. Focus: ${activeFocus}.
+${researchInstruction}
 ${baseRules}
 
 Structure:
 Paragraph 1: "Hey ${firstName},"
-Paragraph 2 (Natural Trigger): Open with a natural peer observation — e.g. if large team: "Saw you guys have a pretty massive team over at ${agency}." Or if smaller: "Saw you're actively handling listings across ${activeFocus}."
-Paragraph 3 (The Pain/Solution): "When portal inquiries hit after hours, leads usually sit on WhatsApp for hours. We built a workflow that qualifies Dubai buyers and routes them to the right agent in 15 seconds."
-Paragraph 4 (Low-friction Ask): "Worth a quick 2-minute look, or are you guys totally sorted on this?"
+Paragraph 2 (Live Trigger): ${liveResearch ? `Reference: "${liveResearch.slice(0, 100)}"` : `Saw you guys have a team of ${size} brokers over at ${agency}.`}
+Paragraph 3 (The Pain Point): When portal leads hit after hours, they usually sit on WhatsApp for hours. We built a workflow that qualifies buyers in 15 seconds.
+Paragraph 4 (The Low-Friction Ask): "Worth a quick 2-minute look, or are you guys totally sorted on this?"
 Paragraph 5: "Best,\\nSourav"`;
   }
 }
@@ -158,16 +166,26 @@ export async function GET(req: Request) {
   try {
     const url = new URL(req.url);
     const selectedFramework = url.searchParams.get('framework') || 'dld_trigger';
+    const action = url.searchParams.get('action') || 'send_queue'; // 'send_queue' | 'send_followup'
 
-    // 1. Fetch 2 unsent leads
-    const { data: leads, error } = await supabase
-      .from('outreach_leads')
-      .select('*')
-      .eq('status', 'unsent')
-      .limit(2);
+    // 1. Fetch leads based on action
+    let query = supabase.from('outreach_leads').select('*');
+    if (action === 'send_followup') {
+      // Fetch leads that were sent and ready for step 2 bump
+      query = query.eq('status', 'sent').lt('sequence_step', 3).limit(2);
+    } else {
+      // Default: fetch unsent leads for Step 1
+      query = query.eq('status', 'unsent').limit(2);
+    }
+
+    const { data: leads, error } = await query;
 
     if (error || !leads || leads.length === 0) {
-      return NextResponse.json({ message: 'No unsent leads found or error.' }, { status: 200 });
+      return NextResponse.json({ 
+        message: action === 'send_followup' 
+          ? 'No leads currently pending follow-up sequence.' 
+          : 'No unsent leads found in the queue.' 
+      }, { status: 200 });
     }
 
     const results = [];
@@ -175,107 +193,129 @@ export async function GET(req: Request) {
 
     for (let i = 0; i < leads.length; i++) {
       const lead = leads[i];
+      const currentStep = lead.sequence_step || 1;
+      const firstName = (lead.name || 'there').split(' ')[0];
+      const cleanAgency = (lead.agency_name || 'your agency').replace(/L\.?L\.?C\.?/i, '').trim();
 
-      // Determine framework (handle auto_rotate for A/B testing)
-      const currentFramework = selectedFramework === 'auto_rotate' 
-        ? frameworksList[i % frameworksList.length] 
-        : selectedFramework;
+      let emailSubject = '';
+      let emailBody = '';
+      let nextStep = currentStep;
+      let aiRationale = '';
 
-      // 2. Autonomous ICP Research & Web Enrichment
-      const enrichment = await enrichProspect({
-        name: lead.name,
-        agency_name: lead.agency_name,
-        email: lead.email,
-        website: lead.website,
-        agency_size: lead.agency_size,
-        outbound_tier: lead.outbound_tier,
-        recommended_offer: lead.recommended_offer
-      });
+      // Handle Follow-Up Sequence (Step 2: 1-Line Threaded Bump, Step 3: Breakup)
+      if (action === 'send_followup' && currentStep >= 1) {
+        const baseSubject = lead.ai_generated_subject || `quick question ${firstName.toLowerCase()}`;
+        emailSubject = baseSubject.toLowerCase().startsWith('re:') ? baseSubject : `Re: ${baseSubject}`;
 
-      // 3. Build Framework Prompt
-      const frameworkPrompt = getFrameworkPrompt(currentFramework, lead, enrichment);
-      const fullPrompt = `${frameworkPrompt}
+        if (currentStep === 1) {
+          // Step 2: Threaded 1-Line Bump (Day 3/4)
+          emailBody = `Hey ${firstName},\n\nQuick bump on this — wanted to see if your team is open to a 60-second video of that WhatsApp routing flow, or should I leave you be?\n\nBest,\nSourav`;
+          nextStep = 2;
+          aiRationale = `[Sequence Step 2: Threaded Bump] Follow-up sent on same thread.`;
+        } else {
+          // Step 3: Permission Breakup Email (Day 7/8)
+          emailBody = `Hey ${firstName},\n\nAssuming after-hours lead response isn't a priority for ${cleanAgency} right now.\n\nWon't bug you again — but if anything changes, you know where to find me.\n\nBest,\nSourav`;
+          nextStep = 3;
+          aiRationale = `[Sequence Step 3: Breakup Note] Polite close-out email sent.`;
+        }
+      } else {
+        // Step 1: Initial Hyper-Personalized Trigger Email
+        const currentFramework = selectedFramework === 'auto_rotate' 
+          ? frameworksList[i % frameworksList.length] 
+          : selectedFramework;
 
-Return ONLY a valid JSON object with exactly two keys:
+        // Autonomous Web & Domain Intelligence Research
+        const enrichment = await enrichProspect({
+          name: lead.name,
+          agency_name: lead.agency_name,
+          email: lead.email,
+          website: lead.website,
+          agency_size: lead.agency_size,
+          outbound_tier: lead.outbound_tier,
+          recommended_offer: lead.recommended_offer
+        });
+
+        const frameworkPrompt = getFrameworkPrompt(currentFramework, lead, enrichment);
+        const fullPrompt = `${frameworkPrompt}
+
+Return ONLY a valid JSON object:
 {
   "email_body": "the actual email text with \\n\\n between every single paragraph",
-  "rationale": "1 sentence why this angle was taken"
+  "rationale": "1 sentence explaining the angle taken and research fact used"
 }`;
 
-      const aiResponseRaw = await generateWithGemini(fullPrompt, true);
-      let aiResponse;
-      try {
-        aiResponse = JSON.parse(aiResponseRaw);
-      } catch (e) {
-        const cleanName = (lead.name || 'there').split(' ')[0];
-        const cleanAgency = (lead.agency_name || 'your agency').replace(/L\.?L\.?C\.?/i, '').trim();
-        aiResponse = { 
-          email_body: `Hey ${cleanName},\n\nSaw you guys over at ${cleanAgency}.\n\nQuick question — how is your team handling Property Finder leads that come in after hours right now?\n\nWe set up a simple WhatsApp automation that qualifies buyers in 15 seconds and routes them straight to the right broker.\n\nWorth a quick 2-minute look, or are you guys totally sorted on this?\n\nBest,\nSourav`, 
-          rationale: `Fallback triggered under ${currentFramework.toUpperCase()} framework.` 
-        };
-      }
+        const aiResponseRaw = await generateWithGemini(fullPrompt, true);
+        let aiResponse;
+        try {
+          aiResponse = JSON.parse(aiResponseRaw);
+        } catch (e) {
+          aiResponse = { 
+            email_body: `Hey ${firstName},\n\nSaw you guys over at ${cleanAgency}.\n\nQuick question — how is your team handling Property Finder leads that come in after hours right now?\n\nWe set up a simple WhatsApp automation that qualifies buyers in 15 seconds and routes them straight to the right broker.\n\nWorth a quick 2-minute look, or are you guys totally sorted on this?\n\nBest,\nSourav`, 
+            rationale: `Fallback triggered under ${currentFramework.toUpperCase()} framework.` 
+          };
+        }
 
-      // Ensure proper paragraph spacing (\n\n) even if AI grouped sentences
-      let emailBody = aiResponse.email_body.trim();
-      // If AI didn't include double newlines, enforce paragraph separation
-      if (!emailBody.includes('\n\n')) {
-        emailBody = emailBody.replace(/\.\s+([A-Z])/g, '.\n\n$1');
-      }
+        emailBody = aiResponse.email_body.trim();
+        if (!emailBody.includes('\n\n')) {
+          emailBody = emailBody.replace(/\.\s+([A-Z])/g, '.\n\n$1');
+        }
 
-      const aiRationale = `[Framework: ${currentFramework.toUpperCase()}] ` + (aiResponse.rationale?.trim() || '');
+        const researchBadge = enrichment.source === 'live_web_research' 
+          ? `[Live Web Research: "${enrichment.liveResearchSnippet?.slice(0, 75)}..."] ` 
+          : '';
+        aiRationale = `${researchBadge}[Framework: ${currentFramework.toUpperCase()}] ` + (aiResponse.rationale?.trim() || '');
 
-      // 4. Generate Natural, Force-Open Subject Line (Casual, 2-4 words, All Lowercase)
-      const cleanAgency = (lead.agency_name || 'your agency').replace(/L\.?L\.?C\.?/i, '').trim().toLowerCase();
-      const cleanFirstName = (lead.name || '').split(' ')[0].toLowerCase();
-
-      const subjectPrompt = `Write a super casual, 2 to 4 word cold email subject line for:
+        // Natural, Force-Open Subject Line (2-4 words, lowercase)
+        const subjectPrompt = `Write a super casual, 2 to 4 word cold email subject line for:
 Recipient: ${lead.name}
-Agency: ${cleanAgency}
+Agency: ${cleanAgency.toLowerCase()}
 
-CRITICAL RULES:
+Rules:
 - 2 to 4 words ONLY.
 - ALL LOWERCASE.
-- NO spam words, NO exclamation marks, NO hype.
-- MUST look like an internal note or quick message from a peer, NOT a bot or database query.
-- BANNED: NEVER say "on dld", "100 brokers", "boost sales", "synergy".
-- Good examples:
-  "quick question ${cleanFirstName}"
-  "${cleanAgency} / lead speed"
-  "quick question about ${cleanAgency}"
-  "after-hours leads at ${cleanAgency}"
-  "${cleanAgency} lead response"
-
+- Looks like a peer note: e.g. "quick question ${firstName.toLowerCase()}", "${cleanAgency.toLowerCase()} / lead speed", "after-hours leads at ${cleanAgency.toLowerCase()}".
 Return ONLY the raw subject line text without quotes.`;
 
-      const emailSubjectRaw = await generateWithGemini(subjectPrompt, false);
-      let emailSubject = emailSubjectRaw.trim().toLowerCase().replace(/['"]/g, '').replace(/\.$/, '');
-      if (!emailSubject || emailSubject.length > 35) {
-        emailSubject = cleanAgency ? `quick question about ${cleanAgency}` : `quick question ${cleanFirstName}`;
+        const emailSubjectRaw = await generateWithGemini(subjectPrompt, false);
+        emailSubject = emailSubjectRaw.trim().toLowerCase().replace(/['"]/g, '').replace(/\.$/, '');
+        if (!emailSubject || emailSubject.length > 32) {
+          emailSubject = `quick question about ${cleanAgency.toLowerCase()}`;
+        }
+        nextStep = 1;
       }
 
-      // 5. Send Email via Gmail SMTP with pristine HTML paragraph formatting
+      // 5. Send Email via Gmail SMTP with Threading & Styled HTML
       try {
         if (!lead.email || !lead.email.includes('@')) throw new Error("Invalid email address: " + lead.email);
         
-        // Convert double-newlines into styled HTML paragraphs
         const htmlBody = emailBody
           .split(/\n\n+/)
           .map((para: string) => `<p style="margin: 0 0 16px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 14.5px; line-height: 1.6; color: #1f2937;">${para.replace(/\n/g, '<br/>')}</p>`)
           .join('');
 
-        await transporter.sendMail({
+        const mailOptions: any = {
           from: `"Sourav" <${process.env.GMAIL_USER}>`,
           to: lead.email,
           subject: emailSubject,
           text: emailBody,
           html: htmlBody
-        });
+        };
+
+        // Threaded reply headers if follow-up
+        if (lead.message_id) {
+          mailOptions.inReplyTo = lead.message_id;
+          mailOptions.references = lead.message_id;
+        }
+
+        const sendInfo = await transporter.sendMail(mailOptions);
 
         // 6. Update lead status in Supabase
         await supabase
           .from('outreach_leads')
           .update({
             status: 'sent',
+            sequence_step: nextStep,
+            message_id: sendInfo.messageId || lead.message_id || null,
             ai_generated_subject: emailSubject,
             ai_generated_body: emailBody,
             ai_rationale: aiRationale,
@@ -283,24 +323,28 @@ Return ONLY the raw subject line text without quotes.`;
           })
           .eq('id', lead.id);
 
-        results.push({ email: lead.email, status: 'sent', framework: currentFramework, subject: emailSubject });
+        results.push({ 
+          email: lead.email, 
+          status: 'sent', 
+          step: nextStep,
+          subject: emailSubject 
+        });
       } catch (sendErr: any) {
-        // Mark as failed so it doesn't block the queue forever
         await supabase
           .from('outreach_leads')
           .update({
             status: 'failed',
-            ai_rationale: `[Framework: ${currentFramework.toUpperCase()}] Failed to send: ` + sendErr.message
+            ai_rationale: `Failed: ` + sendErr.message
           })
           .eq('id', lead.id);
         
-        results.push({ email: lead.email, status: 'failed', error: sendErr.message, framework: currentFramework });
+        results.push({ email: lead.email, status: 'failed', error: sendErr.message });
       }
     }
 
     return NextResponse.json({ 
       success: true, 
-      framework_mode: selectedFramework,
+      action,
       processed: results 
     });
 

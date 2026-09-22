@@ -669,10 +669,25 @@ export default function Dashboard() {
                   </div>
                 </div>
                 
-                <div className="flex justify-between items-center mb-4">
-                  <h4 className="font-bold text-sm">Outreach Actions</h4>
-                  <div className="flex items-center gap-2">
-                    <button onClick={async () => { if(confirm('Clear all leads?')) { await supabase.from('outreach_leads').delete().neq('id', 0); fetchDashboardData(); } }} className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-xl text-xs shadow-lg transition-all">Clear Data</button>
+                <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 mb-4">
+                  <h4 className="font-bold text-sm">Outreach Engine & Automated Sequences</h4>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button onClick={async () => { if(confirm('Clear all leads?')) { await supabase.from('outreach_leads').delete().neq('id', 0); fetchDashboardData(); } }} className="px-3.5 py-2 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-xl text-xs shadow-lg transition-all">Clear Data</button>
+                    <button 
+                      onClick={async () => {
+                        alert('Triggering Automated Follow-Up Sequence (Threaded Bumps)...');
+                        const res = await fetch('/api/outreach/cron?action=send_followup');
+                        const data = await res.json();
+                        if(data.success && data.processed) {
+                          alert('Follow-up emails sent to: ' + data.processed.map((p: any) => `${p.email} (Step ${p.step})`).join(', '));
+                          fetchDashboardData();
+                        } else {
+                          alert('Message: ' + (data.message || data.error));
+                        }
+                      }}
+                      className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl text-xs shadow-lg transition-all flex items-center gap-1.5">
+                      <RefreshCcw size={13} /> Run Follow-Ups (Bump)
+                    </button>
                     <button 
                       onClick={async () => {
                         alert(`Triggering Outreach Engine with [${outreachFramework.toUpperCase()}] Framework...`);
@@ -703,6 +718,7 @@ export default function Dashboard() {
                           <th className="py-3 pr-4 font-semibold">Name</th>
                           <th className="py-3 px-4 font-semibold">Email</th>
                           <th className="py-3 px-4 font-semibold">Agency</th>
+                          <th className="py-3 px-4 font-semibold">Sequence</th>
                           <th className="py-3 px-4 font-semibold">Status</th>
                         </tr>
                       </thead>
@@ -712,6 +728,11 @@ export default function Dashboard() {
                             <td className="py-3 pr-4 font-medium dark:text-white">{lead.name}</td>
                             <td className="py-3 px-4 text-gray-500">{lead.email}</td>
                             <td className="py-3 px-4 text-gray-500">{lead.agency_name || '-'}</td>
+                            <td className="py-3 px-4">
+                              <span className="px-2 py-0.5 rounded-md text-[11px] font-semibold bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400">
+                                {lead.sequence_step === 2 ? 'Step 2 (Bumped)' : lead.sequence_step === 3 ? 'Step 3 (Breakup)' : lead.status === 'sent' ? 'Step 1 (Sent)' : 'Step 1 (Queued)'}
+                              </span>
+                            </td>
                             <td className="py-3 px-4">
                               <span className={`px-2 py-1 rounded-md text-xs font-bold ${lead.status === 'sent' ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-500/10' : lead.status === 'failed' ? 'bg-red-100 text-red-600 dark:bg-red-500/10' : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'}`}>
                                 {lead.status.toUpperCase()}
@@ -752,10 +773,21 @@ export default function Dashboard() {
                         </div>
                       </div>
 
+                      {selectedLead.ai_rationale?.includes('[Live Web Research:') && (
+                        <div className="mb-4 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 p-4 rounded-xl">
+                          <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-700 dark:text-emerald-300 uppercase tracking-wide mb-1">
+                            🌐 Live Web Research Discovery (Internet Grounded)
+                          </div>
+                          <p className="text-xs text-emerald-900 dark:text-emerald-200 font-medium leading-relaxed">
+                            {selectedLead.ai_rationale.split('[Framework:')[0].replace(/\[Live Web Research:\s*"?|"?\]/g, '')}
+                          </p>
+                        </div>
+                      )}
+
                       {selectedLead.status === 'sent' && selectedLead.ai_rationale && (
                         <div className="mb-6">
                           <h3 className="text-sm font-bold text-blue-600 dark:text-[#00f0ff] mb-2 flex items-center gap-2">
-                            <Sparkles size={16} /> AI Thought Process & Rationale
+                            <Sparkles size={16} /> AI Thought Process & Copywriting Strategy
                           </h3>
                           <div className="bg-blue-50 dark:bg-[#00f0ff]/10 border border-blue-100 dark:border-[#00f0ff]/20 p-4 rounded-xl text-sm dark:text-blue-100 leading-relaxed">
                             {selectedLead.ai_rationale}
