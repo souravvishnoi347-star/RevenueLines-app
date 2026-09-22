@@ -62,85 +62,95 @@ async function generateWithGemini(prompt: string, isJson: boolean = false) {
   return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
 }
 
-// Framework configurations with Dubai Real Estate copywriting psychology
+// Framework configurations with human-to-human Dubai Real Estate copywriting psychology
 function getFrameworkPrompt(framework: string, lead: any, enrichment: any) {
-  const agency = lead.agency_name || 'your agency';
-  const name = lead.name || 'there';
+  const agency = (lead.agency_name || 'your agency').replace(/L\.?L\.?C\.?/i, '').replace(/Brokerage/i, '').trim();
+  const firstName = (lead.name || 'there').split(' ')[0] || 'there';
   const size = lead.agency_size || 'active';
   const tier = lead.outbound_tier || 'A';
   const offer = lead.recommended_offer || 'Instant WhatsApp lead response and CRM routing';
-  const triggerHook = enrichment.triggerObservation || `Noticed ${agency}'s team presence on the DLD registry.`;
-  const activeFocus = enrichment.activeAreas?.join(' / ') || 'Dubai Real Estate';
+  const activeFocus = enrichment.activeAreas?.join(' & ') || 'Dubai';
+
+  const baseRules = `
+CRITICAL FORMATTING & SPACING RULES:
+1. EVERY thought MUST be its own short paragraph separated by an empty blank line (\\n\\n).
+2. Max 1 to 2 sentences per paragraph. NEVER output a single wall of text!
+3. Total email must be under 60 words. Short, punchy, mobile-friendly.
+
+STRICTLY BANNED PHRASES (SOUNDS LIKE A BOT):
+- NEVER write "noticed [Agency] has an established team of X brokers registered on DLD"
+- NEVER write "Propnexaa solves this with instant WhatsApp AI qualification..."
+- NEVER write "I hope this email finds you well" or "As a premier agency..."
+- NEVER use marketing jargon: "revolutionize", "cutting-edge", "game-changer", "synergy", "delighted".
+
+HOW A REAL FOUNDER WRITES:
+- Write like Sourav (founder) sending a quick note from his phone while between meetings.
+- Casual peer-to-peer tone.
+- Sign off naturally:
+Best,
+Sourav`;
 
   switch (framework) {
     case 'qvc':
-      return `You are writing a cold email using the proven QVC Framework (Question - Value - Call to Action).
-Target: ${name} at ${agency}.
-Details: Agency scale: ${size} brokers. Focus: ${activeFocus}. Trigger Hook: ${triggerHook}.
+      return `You are writing a cold email using the QVC framework (Question - Value - CTA).
+Target: ${firstName} at ${agency}. Team scale: ${size}. Active areas: ${activeFocus}.
+${baseRules}
 
-Structure (Strictly 3 sentences, max 60 words):
-1. Question: A thoughtful, direct question about their speed to lead on Bayut/Property Finder portal inquiries (especially after-hours or on weekends).
-2. Value: 1 punchy sentence explaining how Propnexaa auto-qualifies and responds to Dubai buyers on WhatsApp in 15 seconds.
-3. CTA: A low-friction ask: "Worth sending a 45-second preview of how it works, or bad timing?"
-
-Tone: Casual, executive peer-to-peer. NO marketing fluff, NO "I hope this email finds you well", NO exclamation marks. Sign off: "Sourav from Propnexaa".`;
+Structure:
+Paragraph 1: "Hey ${firstName},"
+Paragraph 2 (Question): Ask a casual question about how ${agency} handles Property Finder / Bayut leads that come in after 8 PM or on weekends.
+Paragraph 3 (Value): 1 sentence on how Propnexaa auto-qualifies and responds to Dubai buyers on WhatsApp in 15 seconds.
+Paragraph 4 (CTA): "Worth a quick 2-minute look, or are you guys totally sorted on this?"
+Paragraph 5: "Best,\\nSourav"`;
 
     case 'pas':
-      return `You are writing a cold email using the proven PAS Framework (Problem - Agitate - Solve).
-Target: ${name} at ${agency}.
-Details: Agency size: ${size} brokers. Recommended Offer: ${offer}. Trigger Hook: ${triggerHook}.
+      return `You are writing a cold email using the PAS framework (Problem - Agitate - Solve).
+Target: ${firstName} at ${agency}. Team scale: ${size}.
+${baseRules}
 
-Structure (Under 4 sentences, max 75 words):
-1. Problem: Dubai off-plan and secondary buyers inquire on 3+ agency listings at once.
-2. Agitate: If agents take 20+ minutes to follow up, the buyer has already moved on with another broker.
-3. Solve: Propnexaa acts as a 24/7 AI lead dispatcher that qualifies buyer budget & timeline on WhatsApp instantly.
-4. Soft Ask: "Open to seeing if this could help ${agency} recover dropped portal leads?"
-
-Tone: Honest, observant, non-salesy. Sign off: "Sourav from Propnexaa".`;
+Structure:
+Paragraph 1: "Hey ${firstName},"
+Paragraph 2 (Problem & Agitate): Point out that Dubai buyers message 3+ brokers at once, and taking 15+ minutes to reply usually means losing the deal.
+Paragraph 3 (Solve): We built a lightweight WhatsApp automation that replies and qualifies buyers in 15 seconds.
+Paragraph 4 (Soft Ask): "Open to seeing how it works for ${agency}, or bad timing?"
+Paragraph 5: "Best,\\nSourav"`;
 
     case 'bab':
-      return `You are writing a cold email using the proven BAB Framework (Before - After - Bridge).
-Target: ${name} at ${agency}.
-Details: Agency scale: ${size} brokers. Trigger Hook: ${triggerHook}. Focus: ${activeFocus}.
+      return `You are writing a cold email using the BAB framework (Before - After - Bridge).
+Target: ${firstName} at ${agency}. Team scale: ${size}.
+${baseRules}
 
-Structure (Under 4 sentences, max 75 words):
-1. Before: Brokers losing 2+ hours daily manually chasing unresponsive portal leads and updating Excel.
-2. After: Starting every morning with pre-qualified buyers booked straight into your agents' WhatsApp calendar.
-3. Bridge: Propnexaa bridges that gap with automated Dubai lead qualification.
-4. Soft Ask: "Mind if I share a 1-minute breakdown of how we set this up for Dubai teams?"
-
-Tone: Clear, crisp contrast. Sign off: "Sourav from Propnexaa".`;
+Structure:
+Paragraph 1: "Hey ${firstName},"
+Paragraph 2 (Contrast): Contrast agents wasting 2+ hours daily manually chasing cold portal inquiries vs. waking up with pre-qualified viewings already booked on WhatsApp.
+Paragraph 3 (Bridge): That's exactly what we set up for Dubai brokerages.
+Paragraph 4 (Ask): "Mind if I send over a 60-second video of how it routes to your agents?"
+Paragraph 5: "Best,\\nSourav"`;
 
     case 'soft_offer':
-      return `You are writing a cold email using the Permission-Based / Soft Offer Framework.
-Target: ${name} at ${agency}.
-Details: Scale: ${size} brokers. Trigger Hook: ${triggerHook}. Focus: ${activeFocus}.
+      return `You are writing a cold email using the Permission-Based Soft Offer framework.
+Target: ${firstName} at ${agency}. Team scale: ${size}.
+${baseRules}
 
-Structure (Under 3 sentences, max 50 words):
-1. Observation: Naturally weave in "${triggerHook}".
-2. Offer: We put together a short 60-second video showing how Dubai agencies automate WhatsApp lead routing without replacing their CRM.
-3. Permission Ask: "Mind if I drop the link here, or is ${agency} totally covered on lead response right now?"
-
-Tone: Ultra-humble, respectful of their time, zero pressure. Sign off: "Sourav from Propnexaa".`;
+Structure:
+Paragraph 1: "Hey ${firstName},"
+Paragraph 2 (Observation & Offer): Saw your team over at ${agency}. We put together a short 1-minute breakdown showing how Dubai brokers auto-reply to portal leads on WhatsApp.
+Paragraph 3 (Permission Ask): "Mind if I drop the link here, or are you guys totally good on lead response right now?"
+Paragraph 4: "Best,\\nSourav"`;
 
     case 'dld_trigger':
     default:
-      return `You are writing a cold email using the proven DLD Trigger & Observation Framework (Ranked #1 for Dubai Real Estate B2B).
-Target: ${name} at ${agency}.
-Details:
-- DLD Scale: ${size} licensed brokers
-- DLD Tier: ${tier}
-- Recommended Offer: ${offer}
-- Enriched Research Hook: ${triggerHook}
-- Active Areas: ${activeFocus}
+      return `You are writing a cold email using the DLD Trigger & Observation framework.
+Target: ${firstName} at ${agency}.
+Scale Context: ${size} brokers. Recommended Offer: ${offer}. Focus: ${activeFocus}.
+${baseRules}
 
-Structure (Under 4 sentences, max 70 words):
-1. Personalized Trigger: Open directly with the observation "${triggerHook}" or mention their team scale naturally.
-2. Tailored Pain Point: Based on whether they are a large team (coordinating lead routing and after-hours coverage) or solo/boutique (saving hours on manual qualification).
-3. The Propnexaa Edge: Instant WhatsApp AI qualification + CRM dispatch tailored for Dubai brokers.
-4. Low-Friction Ask: "Open to checking out a 60-second walkthrough tailored for ${agency}?"
-
-Tone: Highly knowledgeable about the Dubai market, conversational, respectful. Absolutely NO generic sales jargon. Sign off: "Sourav from Propnexaa".`;
+Structure:
+Paragraph 1: "Hey ${firstName},"
+Paragraph 2 (Natural Trigger): Open with a natural peer observation — e.g. if large team: "Saw you guys have a pretty massive team over at ${agency}." Or if smaller: "Saw you're actively handling listings across ${activeFocus}."
+Paragraph 3 (The Pain/Solution): "When portal inquiries hit after hours, leads usually sit on WhatsApp for hours. We built a workflow that qualifies Dubai buyers and routes them to the right agent in 15 seconds."
+Paragraph 4 (Low-friction Ask): "Worth a quick 2-minute look, or are you guys totally sorted on this?"
+Paragraph 5: "Best,\\nSourav"`;
   }
 }
 
@@ -188,8 +198,8 @@ export async function GET(req: Request) {
 
 Return ONLY a valid JSON object with exactly two keys:
 {
-  "email_body": "the actual email text...",
-  "rationale": "1-2 sentences explaining why this framework was chosen and how the trigger was used"
+  "email_body": "the actual email text with \\n\\n between every single paragraph",
+  "rationale": "1 sentence why this angle was taken"
 }`;
 
       const aiResponseRaw = await generateWithGemini(fullPrompt, true);
@@ -197,44 +207,68 @@ Return ONLY a valid JSON object with exactly two keys:
       try {
         aiResponse = JSON.parse(aiResponseRaw);
       } catch (e) {
+        const cleanName = (lead.name || 'there').split(' ')[0];
+        const cleanAgency = (lead.agency_name || 'your agency').replace(/L\.?L\.?C\.?/i, '').trim();
         aiResponse = { 
-          email_body: `Hi ${lead.name || ''},\n\nSaw your team at ${lead.agency_name || 'your agency'}. We help Dubai real estate brokers automate after-hours portal lead responses on WhatsApp within 15 seconds.\n\nWorth sending a 60-second video of how it works?\n\nBest,\nSourav from Propnexaa`, 
+          email_body: `Hey ${cleanName},\n\nSaw you guys over at ${cleanAgency}.\n\nQuick question — how is your team handling Property Finder leads that come in after hours right now?\n\nWe set up a simple WhatsApp automation that qualifies buyers in 15 seconds and routes them straight to the right broker.\n\nWorth a quick 2-minute look, or are you guys totally sorted on this?\n\nBest,\nSourav`, 
           rationale: `Fallback triggered under ${currentFramework.toUpperCase()} framework.` 
         };
       }
 
-      const emailBody = aiResponse.email_body.trim();
+      // Ensure proper paragraph spacing (\n\n) even if AI grouped sentences
+      let emailBody = aiResponse.email_body.trim();
+      // If AI didn't include double newlines, enforce paragraph separation
+      if (!emailBody.includes('\n\n')) {
+        emailBody = emailBody.replace(/\.\s+([A-Z])/g, '.\n\n$1');
+      }
+
       const aiRationale = `[Framework: ${currentFramework.toUpperCase()}] ` + (aiResponse.rationale?.trim() || '');
 
-      // 4. Generate Force-Open, Trigger-Based Subject Line
-      const subjectPrompt = `Generate a high-converting, non-spam cold email subject line for:
-Recipient: ${lead.name}
-Agency: ${lead.agency_name || 'Dubai Brokerage'}
-Trigger context: ${enrichment.triggerObservation}
-Framework: ${currentFramework}
+      // 4. Generate Natural, Force-Open Subject Line (Casual, 2-4 words, All Lowercase)
+      const cleanAgency = (lead.agency_name || 'your agency').replace(/L\.?L\.?C\.?/i, '').trim().toLowerCase();
+      const cleanFirstName = (lead.name || '').split(' ')[0].toLowerCase();
 
-Rules:
-- Under 6 words maximum.
-- Prefer all-lowercase or sentence-case (avoids marketing look).
-- No spam trigger words ("Revolutionary", "Guaranteed", "Free", "Boost 10x").
-- Examples of great patterns:
-  "quick question about ${lead.agency_name || 'leads'}"
-  "${lead.name || 'broker'}, after-hours leads at ${lead.agency_name || 'agency'}"
-  "${lead.agency_name || 'team'} + whatsapp lead speed"
+      const subjectPrompt = `Write a super casual, 2 to 4 word cold email subject line for:
+Recipient: ${lead.name}
+Agency: ${cleanAgency}
+
+CRITICAL RULES:
+- 2 to 4 words ONLY.
+- ALL LOWERCASE.
+- NO spam words, NO exclamation marks, NO hype.
+- MUST look like an internal note or quick message from a peer, NOT a bot or database query.
+- BANNED: NEVER say "on dld", "100 brokers", "boost sales", "synergy".
+- Good examples:
+  "quick question ${cleanFirstName}"
+  "${cleanAgency} / lead speed"
+  "quick question about ${cleanAgency}"
+  "after-hours leads at ${cleanAgency}"
+  "${cleanAgency} lead response"
+
 Return ONLY the raw subject line text without quotes.`;
 
       const emailSubjectRaw = await generateWithGemini(subjectPrompt, false);
-      const emailSubject = emailSubjectRaw.trim().replace(/['"]/g, '') || `quick question for ${lead.name || lead.agency_name}`;
+      let emailSubject = emailSubjectRaw.trim().toLowerCase().replace(/['"]/g, '').replace(/\.$/, '');
+      if (!emailSubject || emailSubject.length > 35) {
+        emailSubject = cleanAgency ? `quick question about ${cleanAgency}` : `quick question ${cleanFirstName}`;
+      }
 
-      // 5. Send Email via Gmail SMTP
+      // 5. Send Email via Gmail SMTP with pristine HTML paragraph formatting
       try {
         if (!lead.email || !lead.email.includes('@')) throw new Error("Invalid email address: " + lead.email);
         
+        // Convert double-newlines into styled HTML paragraphs
+        const htmlBody = emailBody
+          .split(/\n\n+/)
+          .map((para: string) => `<p style="margin: 0 0 16px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 14.5px; line-height: 1.6; color: #1f2937;">${para.replace(/\n/g, '<br/>')}</p>`)
+          .join('');
+
         await transporter.sendMail({
-          from: `"Sourav | Propnexaa" <${process.env.GMAIL_USER}>`,
+          from: `"Sourav" <${process.env.GMAIL_USER}>`,
           to: lead.email,
           subject: emailSubject,
-          text: emailBody
+          text: emailBody,
+          html: htmlBody
         });
 
         // 6. Update lead status in Supabase
